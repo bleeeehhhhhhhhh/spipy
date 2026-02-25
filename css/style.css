@@ -1126,6 +1126,243 @@ h6 {
 }
 
 /* ========================================
+   REACTIVE KAWAII BUTTON BUDDIES
+   ======================================== */
+
+/* -- Title buddy (next to "Spipy" text) -- */
+.title-buddy {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 4px;
+  position: relative;
+}
+
+.title-buddy .buddy-svg {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 2px 6px rgba(255, 182, 193, 0.4));
+}
+
+/* Sad idle: gentle droopy sway */
+.title-buddy .buddy-svg {
+  animation: buddySadSway 3s ease-in-out infinite;
+}
+
+/* Happy on title hover */
+.hero-title:hover .title-buddy .buddy-svg {
+  animation: buddyHappyBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  transform: scale(1.15);
+}
+
+/* Mouth: sad = frown (curve down), happy = smile (curve up) */
+.title-buddy .buddy-mouth {
+  transition: d 0.3s ease, transform 0.3s ease;
+}
+
+.hero-title:hover .title-buddy .buddy-mouth {
+  d: path("M15 22 Q18 26 21 22");
+}
+
+/* Eyes squint happy */
+.hero-title:hover .title-buddy .buddy-eye-l,
+.hero-title:hover .title-buddy .buddy-eye-r {
+  ry: 1;
+  animation: buddyEyeSparkle 0.8s ease-in-out infinite alternate;
+}
+
+/* -- Button buddy wraps -- */
+.btn-buddy-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0px;
+}
+
+.btn-buddy {
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  filter: drop-shadow(0 2px 6px rgba(255, 182, 193, 0.3));
+  flex-shrink: 0;
+  cursor: default;
+}
+
+/* Sad state: droopy sway */
+.btn-buddy.sad {
+  animation: buddySadSway 3.5s ease-in-out infinite;
+  opacity: 0.7;
+}
+
+/* Happy state on hover of the WRAP */
+.btn-buddy-wrap:hover .btn-buddy {
+  animation: buddyHappyBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  opacity: 1;
+  transform: scale(1.2);
+  filter: drop-shadow(0 3px 10px rgba(255, 182, 193, 0.5));
+}
+
+/* Mouth transitions: sad (frown) → happy (smile) */
+
+/* For 28px buddies */
+.btn-buddy .buddy-mouth {
+  transition: d 0.35s ease;
+}
+
+.btn-buddy-wrap:hover .btn-buddy .buddy-mouth {
+  d: path("M11 17 Q14 21 17 17");
+}
+
+/* For small 22px buddies */
+.btn-buddy.small .buddy-mouth {
+  transition: d 0.35s ease;
+}
+
+.btn-buddy-wrap:hover .btn-buddy.small .buddy-mouth {
+  d: path("M9 13 Q11 16 13 13");
+}
+
+/* Eyes become happy arcs */
+.btn-buddy-wrap:hover .btn-buddy .buddy-eye-l,
+.btn-buddy-wrap:hover .btn-buddy .buddy-eye-r {
+  animation: buddyEyeSparkle 0.6s ease-in-out infinite alternate;
+}
+
+/* -- FAB buddy -- */
+.fab-buddy-wrap {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.fab-buddy-wrap .fab {
+  position: relative;
+  bottom: auto;
+  right: auto;
+}
+
+.fab-buddy {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 91;
+}
+
+.fab-buddy.sad {
+  animation: buddySadSway 3s ease-in-out infinite;
+  opacity: 0.7;
+}
+
+.fab-buddy-wrap:hover .fab-buddy {
+  animation: buddyHappyBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  opacity: 1;
+  transform: translateX(-50%) scale(1.25);
+  filter: drop-shadow(0 3px 10px rgba(255, 182, 193, 0.5));
+}
+
+.fab-buddy-wrap:hover .fab-buddy .buddy-mouth {
+  d: path("M10 14 Q12 17 14 14");
+}
+
+.fab-buddy-wrap:hover .fab-buddy .buddy-eye-l,
+.fab-buddy-wrap:hover .fab-buddy .buddy-eye-r {
+  animation: buddyEyeSparkle 0.6s ease-in-out infinite alternate;
+}
+
+/* -- Post button wrap alignment -- */
+.btn-buddy-wrap.post-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* -- Sad sway animation -- */
+@keyframes buddySadSway {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  25% {
+    transform: translateY(2px) rotate(-3deg);
+  }
+
+  50% {
+    transform: translateY(4px) rotate(0deg);
+  }
+
+  75% {
+    transform: translateY(2px) rotate(3deg);
+  }
+}
+
+/* -- Happy bounce animation -- */
+@keyframes buddyHappyBounce {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1.1);
+  }
+
+  25% {
+    transform: translateY(-6px) rotate(-5deg) scale(1.15);
+  }
+
+  50% {
+    transform: translateY(-2px) rotate(0deg) scale(1.1);
+  }
+
+  75% {
+    transform: translateY(-8px) rotate(5deg) scale(1.18);
+  }
+}
+
+/* -- Eye sparkle animation -- */
+@keyframes buddyEyeSparkle {
+  0% {
+    transform: scaleY(1);
+    fill: #5A4A6A;
+  }
+
+  50% {
+    transform: scaleY(0.3);
+    fill: #FF85A2;
+  }
+
+  100% {
+    transform: scaleY(1);
+    fill: #5A4A6A;
+  }
+}
+
+/* FAB happy bounce override (includes translateX) */
+.fab-buddy-wrap:hover .fab-buddy {
+  animation: fabBuddyHappy 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+}
+
+@keyframes fabBuddyHappy {
+
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0) rotate(0deg) scale(1.15);
+  }
+
+  25% {
+    transform: translateX(-50%) translateY(-6px) rotate(-5deg) scale(1.2);
+  }
+
+  50% {
+    transform: translateX(-50%) translateY(-2px) rotate(0deg) scale(1.15);
+  }
+
+  75% {
+    transform: translateX(-50%) translateY(-8px) rotate(5deg) scale(1.22);
+  }
+}
+
+/* ========================================
    RESPONSIVE
    ======================================== */
 @media (max-width: 768px) {
@@ -1167,12 +1404,31 @@ h6 {
     font-size: 13px;
   }
 
-  .fab {
+  .fab-buddy-wrap {
     bottom: 20px;
     right: 20px;
+  }
+
+  .fab-buddy-wrap .fab {
     width: 52px;
     height: 52px;
     font-size: 24px;
+  }
+
+  .fab-buddy {
+    width: 18px;
+    height: 18px;
+    top: -14px;
+  }
+
+  .btn-buddy {
+    width: 22px;
+    height: 22px;
+  }
+
+  .title-buddy .buddy-svg {
+    width: 28px;
+    height: 28px;
   }
 
   .kawaii-char {
@@ -1465,4 +1721,33 @@ h6 {
 
 [data-theme="dark"] .nav-links a.active {
   background: linear-gradient(135deg, #4A3570, #6A4590);
+}
+
+/* Dark mode buddy characters */
+[data-theme="dark"] .btn-buddy circle:first-child,
+[data-theme="dark"] .title-buddy .buddy-svg circle:first-child {
+  fill: #2A2540;
+  stroke: #4A3570;
+}
+
+[data-theme="dark"] .btn-buddy .buddy-eye-l,
+[data-theme="dark"] .btn-buddy .buddy-eye-r,
+[data-theme="dark"] .title-buddy .buddy-eye-l,
+[data-theme="dark"] .title-buddy .buddy-eye-r {
+  fill: #C4A8E0;
+}
+
+[data-theme="dark"] .btn-buddy .buddy-mouth,
+[data-theme="dark"] .title-buddy .buddy-mouth {
+  stroke: #A07ED0;
+}
+
+[data-theme="dark"] .btn-buddy,
+[data-theme="dark"] .title-buddy .buddy-svg {
+  filter: drop-shadow(0 2px 8px rgba(160, 126, 208, 0.3));
+}
+
+[data-theme="dark"] .btn-buddy-wrap:hover .btn-buddy,
+[data-theme="dark"] .fab-buddy-wrap:hover .fab-buddy {
+  filter: drop-shadow(0 3px 12px rgba(160, 126, 208, 0.5));
 }
