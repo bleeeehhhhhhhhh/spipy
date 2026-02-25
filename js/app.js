@@ -440,9 +440,38 @@ uploadArea.addEventListener('drop', (e) => {
   }
 });
 
+// ---- Theme Toggle (Dark/Light Mode) ----
+const THEME_KEY = 'spipy_theme';
+
+function getTheme() {
+  return localStorage.getItem(THEME_KEY) || 'light';
+}
+
+function setTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+}
+
+function toggleTheme() {
+  const current = getTheme();
+  const next = current === 'dark' ? 'light' : 'dark';
+  setTheme(next);
+  showToast(next === 'dark' ? '🌙 Dark mode activated' : '☀️ Light mode activated');
+}
+
+function initTheme() {
+  const saved = getTheme();
+  if (saved === 'dark') {
+    setTheme('dark');
+  }
+}
+
+document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+
 // ---- Initialize ----
 window.addEventListener('scroll', handleNavbarScroll);
 window.addEventListener('DOMContentLoaded', () => {
+  initTheme();
   createSparkles();
   renderFeed();
   updateStats();
