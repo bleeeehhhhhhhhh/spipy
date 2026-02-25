@@ -5,13 +5,28 @@
 const SUPABASE_URL = 'https://pnihqpsppbfuzvrlmzgc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuaWhxcHNwcGJmdXp2cmxtemdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5OTY0MTcsImV4cCI6MjA4NzU3MjQxN30.z-G_HJz_Q7LcppgndwUnOLaDb9pi2rjRyNl4JivtpJY';
 
-// Initialize Supabase client
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Initialize Supabase client (safely)
+let supabaseClient = null;
+
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    if (window.supabase && window.supabase.createClient) {
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    } else {
+      console.error('Supabase library not loaded! Make sure the CDN script is included before this file.');
+      return null;
+    }
+  }
+  return supabaseClient;
+}
 
 // ---- Supabase Database Functions ----
 async function getPostsFromSupabase() {
   try {
-    const { data, error } = await supabase
+    const client = getSupabaseClient();
+    if (!client) return [];
+
+    const { data, error } = await client
       .from('posts')
       .select('*')
       .order('timestamp', { ascending: false });
@@ -29,7 +44,10 @@ async function getPostsFromSupabase() {
 
 async function savePostToSupabase(post) {
   try {
-    const { data, error } = await supabase
+    const client = getSupabaseClient();
+    if (!client) throw new Error('Supabase not connected');
+
+    const { data, error } = await client
       .from('posts')
       .insert([post])
       .select();
@@ -47,7 +65,10 @@ async function savePostToSupabase(post) {
 
 async function updatePostReactionsInSupabase(postId, reactions) {
   try {
-    const { data, error } = await supabase
+    const client = getSupabaseClient();
+    if (!client) throw new Error('Supabase not connected');
+
+    const { data, error } = await client
       .from('posts')
       .update({ reactions })
       .eq('id', postId)
@@ -66,7 +87,10 @@ async function updatePostReactionsInSupabase(postId, reactions) {
 
 async function deletePostFromSupabase(postId) {
   try {
-    const { error } = await supabase
+    const client = getSupabaseClient();
+    if (!client) throw new Error('Supabase not connected');
+
+    const { error } = await client
       .from('posts')
       .delete()
       .eq('id', postId);
@@ -81,17 +105,28 @@ async function deletePostFromSupabase(postId) {
   }
 }
 
-// Set up real-time listener for posts
-const postsChannel = supabase
-  .channel('posts-changes')
-  .on('postgres_changes', 
-    { event: '*', schema: 'public', table: 'posts' }, 
-    (payload) => {
-      console.log('Posts updated:', payload);
-      // Refresh the feed when changes occur
-      if (window.refreshFeed) {
-        window.refreshFeed();
+// Set up real-time listener for posts (after page loads)
+function setupRealtimeListener() {
+  const client = getSupabaseClient();
+  if (!client) return;
+
+  client
+    .channel('posts-changes')
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'posts' },
+      (payload) => {
+        console.log('Posts updated:', payload);
+        if (window.refreshFeed) {
+          window.refreshFeed();
+        }
       }
-    }
-  )
-  .subscribe();
+    )
+    .subscribe();
+}
+
+// Initialize real-time when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', setupRealtimeListener);
+} else {
+  setupRealtimeListener();
+}
