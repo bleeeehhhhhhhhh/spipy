@@ -1,21 +1,16 @@
 /* ========================================
-   SPIPY — App Logic
+   SPIPY — App Logic (with Supabase)
    ======================================== */
 
-// ---- Data Store ----
-const STORAGE_KEY = 'spipy_posts';
+// ---- Data Store (Using Supabase) ----
+let currentPosts = [];
 
-function getPosts() {
-  try {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-  } catch {
-    return [];
-  }
+async function getPosts() {
+  return await getPostsFromSupabase();
 }
 
-function savePosts(posts) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(posts));
+async function savePosts(posts) {
+  currentPosts = posts;
 }
 
 function generateId() {
@@ -68,7 +63,7 @@ function formatFileSize(bytes) {
 }
 
 // ---- Create Post ----
-function createPost(type) {
+async function createPost(type) {
   let post = {
     id: generateId(),
     type: type,
@@ -135,13 +130,15 @@ function createPost(type) {
     }
   }
 
-  // Save and render
-  const posts = getPosts();
-  posts.unshift(post);
-  savePosts(posts);
-  renderFeed();
-  updateStats();
-  showToast('✨ Posted successfully!');
+  // Save to Supabase
+  try {
+    await savePostToSupabase(post);
+    await refreshFeed();
+    await updateStats();
+    showToast('✨ Posted successfully!');
+  } catch (error) {
+    showToast('😭 Error posting to Supabase: ' + error.message);
+  }
 }
 
 // ---- Spotify URL Converter ----
@@ -187,30 +184,36 @@ function convertSpotifyUrl(url) {
 }
 
 // ---- Delete Post ----
-function deletePost(id) {
-  let posts = getPosts();
-  posts = posts.filter(p => p.id !== id);
-  savePosts(posts);
-  renderFeed();
-  updateStats();
-  showToast('🗑️ Post deleted');
+async function deletePost(id) {
+  try {
+    await deletePostFromSupabase(id);
+    await refreshFeed();
+    await updateStats();
+    showToast('🗑️ Post deleted');
+  } catch (error) {
+    showToast('😭 Error deleting post: ' + error.message);
+  }
 }
 
 // ---- React to Post ----
-function reactToPost(postId, reactionType) {
-  const posts = getPosts();
-  const post = posts.find(p => p.id === postId);
-  if (post) {
-    post.reactions[reactionType] = (post.reactions[reactionType] || 0) + 1;
-    savePosts(posts);
-    renderFeed();
+async function reactToPost(postId, reactionType) {
+  try {
+    const posts = await getPosts();
+    const post = posts.find(p => p.id === postId);
+    if (post) {
+      post.reactions[reactionType] = (post.reactions[reactionType] || 0) + 1;
+      await updatePostReactionsInSupabase(postId, post.reactions);
+      await refreshFeed();
+    }
+  } catch (error) {
+    showToast('😭 Error reacting: ' + error.message);
   }
 }
 
 // ---- Render Feed ----
 function renderFeed() {
   const feed = document.getElementById('feed');
-  const posts = getPosts();
+  const posts = currentPosts;
 
   if (posts.length === 0) {
     feed.innerHTML = `
@@ -314,8 +317,9 @@ function escapeHtml(text) {
 }
 
 // ---- Update Stats ----
-function updateStats() {
-  const posts = getPosts();
+async function updateStats() {
+  const posts = await getPosts();
+  currentPosts = posts;
   const notes = posts.filter(p => p.type === 'note').length;
   const songs = posts.filter(p => p.type === 'song').length;
 
@@ -323,6 +327,16 @@ function updateStats() {
   animateNumber('stat-notes', notes);
   animateNumber('stat-songs', songs);
 }
+
+// ---- Refresh Feed (for real-time updates) ----
+async function refreshFeed() {
+  const posts = await getPosts();
+  currentPosts = posts;
+  renderFeed();
+  await updateStats();
+}
+
+window.refreshFeed = refreshFeed;
 
 function animateNumber(elementId, target) {
   const el = document.getElementById(elementId);
@@ -470,9 +484,21 @@ document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
 
 // ---- Initialize ----
 window.addEventListener('scroll', handleNavbarScroll);
-window.addEventListener('DOMContentLoaded', () => {
+
+async function initializeApp() {
   initTheme();
   createSparkles();
-  renderFeed();
-  updateStats();
-});
+  
+  // Load posts from Supabase
+  try {
+    const posts = await getPostsFromSupabase();
+    currentPosts = posts;
+    renderFeed();
+    await updateStats();
+  } catch (error) {
+    console.error('Error loading posts:', error);
+    showToast('⚠️ Could not load posts from Supabase');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', initializeApp);
