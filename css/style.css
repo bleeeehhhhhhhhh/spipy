@@ -1133,7 +1133,7 @@ h6 {
 .title-buddy {
   display: inline-block;
   vertical-align: middle;
-  margin: 0 4px;
+  margin: 0 2px;
   position: relative;
 }
 
@@ -1150,22 +1150,36 @@ h6 {
 /* Happy on title hover */
 .hero-title:hover .title-buddy .buddy-svg {
   animation: buddyHappyBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
-  transform: scale(1.15);
+  transform: scale(1.1);
 }
 
 /* Mouth: sad = frown (curve down), happy = smile (curve up) */
 .title-buddy .buddy-mouth {
-  transition: d 0.3s ease, transform 0.3s ease;
+  transition: d 0.3s ease;
 }
 
 .hero-title:hover .title-buddy .buddy-mouth {
-  d: path("M15 22 Q18 26 21 22");
+  d: path("M19 25 Q22 29 25 25");
+}
+
+/* Arms: sad = drooping, happy = raised */
+.buddy-arm-l,
+.buddy-arm-r {
+  transition: d 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Title buddy arms raised on hover */
+.hero-title:hover .title-buddy .buddy-arm-l {
+  d: path("M13 36 Q6 30 4 26");
+}
+
+.hero-title:hover .title-buddy .buddy-arm-r {
+  d: path("M31 36 Q38 30 40 26");
 }
 
 /* Eyes squint happy */
 .hero-title:hover .title-buddy .buddy-eye-l,
 .hero-title:hover .title-buddy .buddy-eye-r {
-  ry: 1;
   animation: buddyEyeSparkle 0.8s ease-in-out infinite alternate;
 }
 
@@ -1173,8 +1187,8 @@ h6 {
 .btn-buddy-wrap {
   position: relative;
   display: inline-flex;
-  align-items: center;
-  gap: 0px;
+  align-items: flex-end;
+  gap: 4px;
 }
 
 .btn-buddy {
@@ -1187,35 +1201,48 @@ h6 {
 /* Sad state: droopy sway */
 .btn-buddy.sad {
   animation: buddySadSway 3.5s ease-in-out infinite;
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 /* Happy state on hover of the WRAP */
 .btn-buddy-wrap:hover .btn-buddy {
   animation: buddyHappyBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
   opacity: 1;
-  transform: scale(1.2);
+  transform: scale(1.15);
   filter: drop-shadow(0 3px 10px rgba(255, 182, 193, 0.5));
 }
 
-/* Mouth transitions: sad (frown) → happy (smile) */
-
-/* For 28px buddies */
+/* Mouth transitions: sad (frown) → happy (smile) for normal size buddies */
 .btn-buddy .buddy-mouth {
   transition: d 0.35s ease;
 }
 
+/* Cat chibi mouth (hero button 1) */
 .btn-buddy-wrap:hover .btn-buddy .buddy-mouth {
-  d: path("M11 17 Q14 21 17 17");
+  d: path("M16 22 Q18 26 20 22");
 }
 
-/* For small 22px buddies */
-.btn-buddy.small .buddy-mouth {
-  transition: d 0.35s ease;
+/* Arms raised on hover for all buddies */
+.btn-buddy-wrap:hover .btn-buddy .buddy-arm-l {
+  d: path("M10 31 Q4 25 3 21");
 }
 
+.btn-buddy-wrap:hover .btn-buddy .buddy-arm-r {
+  d: path("M26 31 Q32 25 33 21");
+}
+
+/* Small buddies arm raise */
+.btn-buddy-wrap:hover .btn-buddy.small .buddy-arm-l {
+  d: path("M7 12 Q2 8 1 5");
+}
+
+.btn-buddy-wrap:hover .btn-buddy.small .buddy-arm-r {
+  d: path("M21 12 Q26 8 27 5");
+}
+
+/* Small buddy mouth smile */
 .btn-buddy-wrap:hover .btn-buddy.small .buddy-mouth {
-  d: path("M9 13 Q11 16 13 13");
+  d: path("M12 14 Q14 17 16 14");
 }
 
 /* Eyes become happy arcs */
@@ -1243,7 +1270,7 @@ h6 {
 
 .fab-buddy {
   position: absolute;
-  top: -18px;
+  top: -32px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 91;
@@ -1251,18 +1278,24 @@ h6 {
 
 .fab-buddy.sad {
   animation: buddySadSway 3s ease-in-out infinite;
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .fab-buddy-wrap:hover .fab-buddy {
-  animation: buddyHappyBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
   opacity: 1;
-  transform: translateX(-50%) scale(1.25);
   filter: drop-shadow(0 3px 10px rgba(255, 182, 193, 0.5));
 }
 
 .fab-buddy-wrap:hover .fab-buddy .buddy-mouth {
-  d: path("M10 14 Q12 17 14 14");
+  d: path("M13 21 Q15 25 17 21");
+}
+
+.fab-buddy-wrap:hover .fab-buddy .buddy-arm-l {
+  d: path("M5 19 Q1 15 0 12");
+}
+
+.fab-buddy-wrap:hover .fab-buddy .buddy-arm-r {
+  d: path("M25 19 Q29 15 30 12");
 }
 
 .fab-buddy-wrap:hover .fab-buddy .buddy-eye-l,
@@ -1273,8 +1306,8 @@ h6 {
 /* -- Post button wrap alignment -- */
 .btn-buddy-wrap.post-wrap {
   display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-items: flex-end;
+  gap: 8px;
 }
 
 /* -- Sad sway animation -- */
@@ -1303,19 +1336,19 @@ h6 {
 
   0%,
   100% {
-    transform: translateY(0) rotate(0deg) scale(1.1);
+    transform: translateY(0) rotate(0deg) scale(1.05);
   }
 
   25% {
-    transform: translateY(-6px) rotate(-5deg) scale(1.15);
+    transform: translateY(-8px) rotate(-5deg) scale(1.12);
   }
 
   50% {
-    transform: translateY(-2px) rotate(0deg) scale(1.1);
+    transform: translateY(-3px) rotate(0deg) scale(1.05);
   }
 
   75% {
-    transform: translateY(-8px) rotate(5deg) scale(1.18);
+    transform: translateY(-10px) rotate(5deg) scale(1.15);
   }
 }
 
@@ -1346,19 +1379,19 @@ h6 {
 
   0%,
   100% {
-    transform: translateX(-50%) translateY(0) rotate(0deg) scale(1.15);
+    transform: translateX(-50%) translateY(0) rotate(0deg) scale(1.1);
   }
 
   25% {
-    transform: translateX(-50%) translateY(-6px) rotate(-5deg) scale(1.2);
+    transform: translateX(-50%) translateY(-8px) rotate(-5deg) scale(1.15);
   }
 
   50% {
-    transform: translateX(-50%) translateY(-2px) rotate(0deg) scale(1.15);
+    transform: translateX(-50%) translateY(-3px) rotate(0deg) scale(1.1);
   }
 
   75% {
-    transform: translateX(-50%) translateY(-8px) rotate(5deg) scale(1.22);
+    transform: translateX(-50%) translateY(-10px) rotate(5deg) scale(1.18);
   }
 }
 
