@@ -1144,12 +1144,12 @@ h6 {
 
 /* Sad idle: gentle droopy sway */
 .title-buddy .buddy-svg {
-  animation: buddySadSway 3s ease-in-out infinite;
+  animation: buddySadSway 4s ease-in-out infinite;
 }
 
 /* Happy on title hover */
 .hero-title:hover .title-buddy .buddy-svg {
-  animation: buddyHappyBounce 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation: buddyGentleBounce 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
   transform: scale(1.1);
 }
 
@@ -1177,10 +1177,10 @@ h6 {
   d: path("M31 36 Q38 30 40 26");
 }
 
-/* Eyes squint happy */
+/* Eyes squint happy — horizontal only, no vertical movement */
 .hero-title:hover .title-buddy .buddy-eye-l,
 .hero-title:hover .title-buddy .buddy-eye-r {
-  animation: buddyEyeSparkle 0.8s ease-in-out infinite alternate;
+  animation: buddyEyeSquint 1s ease-in-out infinite alternate;
 }
 
 /* -- Button buddy wraps -- */
@@ -1200,16 +1200,53 @@ h6 {
 
 /* Sad state: droopy sway */
 .btn-buddy.sad {
-  animation: buddySadSway 3.5s ease-in-out infinite;
+  animation: buddySadSway 4s ease-in-out infinite;
   opacity: 0.75;
 }
 
 /* Happy state on hover of the WRAP */
 .btn-buddy-wrap:hover .btn-buddy {
-  animation: buddyHappyBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation: buddyGentleBounce 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
   opacity: 1;
-  transform: scale(1.15);
+  transform: scale(1.1);
   filter: drop-shadow(0 3px 10px rgba(255, 182, 193, 0.5));
+}
+
+/* --- Unique reactions per character type --- */
+/* Cat chibi: wiggle side-to-side */
+.btn-buddy-wrap:hover .btn-buddy.cat-buddy {
+  animation: buddyCatWiggle 1.4s ease-in-out infinite;
+}
+
+/* Bear chibi: gentle nod */
+.btn-buddy-wrap:hover .btn-buddy.bear-buddy {
+  animation: buddyBearNod 1.6s ease-in-out infinite;
+}
+
+/* Star chibi: spin twinkle */
+.btn-buddy-wrap:hover .btn-buddy.star-buddy {
+  animation: buddyStarTwinkle 1.8s ease-in-out infinite;
+}
+
+/* Music chibi: groove/bob */
+.btn-buddy-wrap:hover .btn-buddy.music-buddy {
+  animation: buddyMusicGroove 1s ease-in-out infinite;
+}
+
+/* Bunny chibi: hop */
+.btn-buddy-wrap:hover .btn-buddy.bunny-buddy {
+  animation: buddyBunnyHop 1.5s ease-in-out infinite;
+}
+
+/* --- Blush intensifies on hover --- */
+.buddy-blush {
+  transition: opacity 0.4s ease, rx 0.4s ease;
+}
+
+.btn-buddy-wrap:hover .buddy-blush,
+.hero-title:hover .buddy-blush,
+.fab-buddy-wrap:hover .buddy-blush {
+  opacity: 0.9 !important;
 }
 
 /* Mouth transitions: sad (frown) → happy (smile) for normal size buddies */
@@ -1245,10 +1282,10 @@ h6 {
   d: path("M12 14 Q14 17 16 14");
 }
 
-/* Eyes become happy arcs */
+/* Eyes become happy squints — no vertical movement */
 .btn-buddy-wrap:hover .btn-buddy .buddy-eye-l,
 .btn-buddy-wrap:hover .btn-buddy .buddy-eye-r {
-  animation: buddyEyeSparkle 0.6s ease-in-out infinite alternate;
+  animation: buddyEyeSquint 0.8s ease-in-out infinite alternate;
 }
 
 /* -- FAB buddy -- */
@@ -1277,7 +1314,7 @@ h6 {
 }
 
 .fab-buddy.sad {
-  animation: buddySadSway 3s ease-in-out infinite;
+  animation: buddySadSway 4s ease-in-out infinite;
   opacity: 0.75;
 }
 
@@ -1300,7 +1337,7 @@ h6 {
 
 .fab-buddy-wrap:hover .fab-buddy .buddy-eye-l,
 .fab-buddy-wrap:hover .fab-buddy .buddy-eye-r {
-  animation: buddyEyeSparkle 0.6s ease-in-out infinite alternate;
+  animation: buddyEyeSquint 0.8s ease-in-out infinite alternate;
 }
 
 /* -- Post button wrap alignment -- */
@@ -1331,67 +1368,184 @@ h6 {
   }
 }
 
-/* -- Happy bounce animation -- */
-@keyframes buddyHappyBounce {
+/* -- Gentle bounce animation (slower, less jump) -- */
+@keyframes buddyGentleBounce {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1.02);
+  }
+
+  30% {
+    transform: translateY(-4px) rotate(-3deg) scale(1.06);
+  }
+
+  60% {
+    transform: translateY(-2px) rotate(2deg) scale(1.03);
+  }
+
+  80% {
+    transform: translateY(-5px) rotate(-1deg) scale(1.07);
+  }
+}
+
+/* -- Eye squint animation (horizontal only, eyes stay in place) -- */
+@keyframes buddyEyeSquint {
+
+  0%,
+  100% {
+    transform: scaleY(1) scaleX(1);
+  }
+
+  50% {
+    transform: scaleY(0.2) scaleX(1.2);
+  }
+}
+
+/* -- Unique character reactions -- */
+/* Cat: playful side-to-side wiggle */
+@keyframes buddyCatWiggle {
+
+  0%,
+  100% {
+    transform: translateX(0) rotate(0deg) scale(1.05);
+  }
+
+  20% {
+    transform: translateX(-3px) rotate(-5deg) scale(1.08);
+  }
+
+  40% {
+    transform: translateX(3px) rotate(5deg) scale(1.06);
+  }
+
+  60% {
+    transform: translateX(-2px) rotate(-3deg) scale(1.07);
+  }
+
+  80% {
+    transform: translateX(2px) rotate(3deg) scale(1.05);
+  }
+}
+
+/* Bear: gentle nod up and down */
+@keyframes buddyBearNod {
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg) scale(1.04);
+  }
+
+  30% {
+    transform: translateY(-3px) rotate(-2deg) scale(1.06);
+  }
+
+  50% {
+    transform: translateY(1px) rotate(0deg) scale(1.03);
+  }
+
+  70% {
+    transform: translateY(-4px) rotate(2deg) scale(1.07);
+  }
+}
+
+/* Star: spin twinkle */
+@keyframes buddyStarTwinkle {
+
+  0%,
+  100% {
+    transform: rotate(0deg) scale(1.05);
+  }
+
+  25% {
+    transform: rotate(8deg) scale(1.12);
+  }
+
+  50% {
+    transform: rotate(-5deg) scale(1.0);
+  }
+
+  75% {
+    transform: rotate(6deg) scale(1.1);
+  }
+}
+
+/* Music: groove bob */
+@keyframes buddyMusicGroove {
 
   0%,
   100% {
     transform: translateY(0) rotate(0deg) scale(1.05);
   }
 
-  25% {
-    transform: translateY(-8px) rotate(-5deg) scale(1.12);
+  15% {
+    transform: translateY(-2px) rotate(-4deg) scale(1.07);
   }
 
-  50% {
-    transform: translateY(-3px) rotate(0deg) scale(1.05);
+  30% {
+    transform: translateY(0px) rotate(0deg) scale(1.04);
+  }
+
+  45% {
+    transform: translateY(-3px) rotate(4deg) scale(1.08);
+  }
+
+  60% {
+    transform: translateY(0px) rotate(0deg) scale(1.04);
   }
 
   75% {
-    transform: translateY(-10px) rotate(5deg) scale(1.15);
+    transform: translateY(-2px) rotate(-3deg) scale(1.06);
   }
 }
 
-/* -- Eye sparkle animation -- */
-@keyframes buddyEyeSparkle {
-  0% {
-    transform: scaleY(1);
-    fill: #5A4A6A;
-  }
+/* Bunny: little hop */
+@keyframes buddyBunnyHop {
 
-  50% {
-    transform: scaleY(0.3);
-    fill: #FF85A2;
-  }
-
+  0%,
   100% {
-    transform: scaleY(1);
-    fill: #5A4A6A;
+    transform: translateY(0) scale(1.04);
+  }
+
+  40% {
+    transform: translateY(-5px) scale(1.08);
+  }
+
+  55% {
+    transform: translateY(0) scale(1.02);
+  }
+
+  70% {
+    transform: translateY(-3px) scale(1.06);
+  }
+
+  85% {
+    transform: translateY(0) scale(1.04);
   }
 }
 
-/* FAB happy bounce override (includes translateX) */
+/* FAB happy bounce override (includes translateX, slower) */
 .fab-buddy-wrap:hover .fab-buddy {
-  animation: fabBuddyHappy 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
+  animation: fabBuddyHappy 1.4s cubic-bezier(0.34, 1.56, 0.64, 1) infinite;
 }
 
 @keyframes fabBuddyHappy {
 
   0%,
   100% {
-    transform: translateX(-50%) translateY(0) rotate(0deg) scale(1.1);
+    transform: translateX(-50%) translateY(0) rotate(0deg) scale(1.05);
   }
 
-  25% {
-    transform: translateX(-50%) translateY(-8px) rotate(-5deg) scale(1.15);
+  30% {
+    transform: translateX(-50%) translateY(-4px) rotate(-3deg) scale(1.08);
   }
 
-  50% {
-    transform: translateX(-50%) translateY(-3px) rotate(0deg) scale(1.1);
+  60% {
+    transform: translateX(-50%) translateY(-2px) rotate(2deg) scale(1.06);
   }
 
-  75% {
-    transform: translateX(-50%) translateY(-10px) rotate(5deg) scale(1.18);
+  80% {
+    transform: translateX(-50%) translateY(-5px) rotate(-1deg) scale(1.09);
   }
 }
 
