@@ -127,27 +127,15 @@ async function getProfile(userId) {
       .single();
 
     if (error) {
-      // If profiles table doesn't exist, create a fallback profile
-      if (error.message && (error.message.includes('schema cache') || error.code === '42P01' || error.message.includes('relation'))) {
-        console.warn('Profiles table not found — using fallback profile');
-        return {
-          id: userId,
-          username: 'user_' + userId.substring(0, 8),
-          display_name: 'New User',
-          bio: '',
-          avatar_url: null
-        };
+      // If profiles table doesn't exist, return a local fallback
+      if (error.message && (error.message.includes('schema cache') || error.code === '42P01' || error.message.includes('relation') || error.message.includes('Could not find'))) {
+        console.warn('Profiles table not found — using fallback profile. Run SUPABASE_AUTH_SETUP.sql to fix this!');
+        return _localFallbackProfile(userId);
       }
-      // PGRST116 = no rows found — also create fallback
+      // PGRST116 = no rows found — auto-create the profile in the database
       if (error.code === 'PGRST116') {
-        console.warn('No profile row found — using fallback profile');
-        return {
-          id: userId,
-          username: 'user_' + userId.substring(0, 8),
-          display_name: 'New User',
-          bio: '',
-          avatar_url: null
-        };
+        console.warn('No profile row found — auto-creating profile...');
+        return await _autoCreateProfile(userId, client);
       }
       console.error('Error fetching profile:', error);
       return null;
@@ -155,15 +143,64 @@ async function getProfile(userId) {
     return data;
   } catch (err) {
     console.error('Profile fetch error:', err);
-    // Return fallback profile on any error
-    return {
-      id: userId,
-      username: 'user_' + userId.substring(0, 8),
-      display_name: 'New User',
-      bio: '',
-      avatar_url: null
-    };
+    return _localFallbackProfile(userId);
   }
+}
+
+// Helper: get username from auth user metadata
+async function _getUsernameFromAuth(userId, client) {
+  try {
+    const { data: { user } } = await client.auth.getUser();
+    if (user && user.id === userId && user.user_metadata) {
+      return user.user_metadata.username || null;
+    }
+  } catch (e) { /* ignore */ }
+  return null;
+}
+
+// Helper: auto-create a profile row in the database when one doesn't exist
+async function _autoCreateProfile(userId, client) {
+  try {
+    const authUsername = await _getUsernameFromAuth(userId, client);
+    const username = authUsername || 'user_' + userId.substring(0, 8);
+
+    const newProfile = {
+      id: userId,
+      username: username,
+      display_name: authUsername || 'New User',
+      bio: '',
+      avatar_url: null,
+      updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await client
+      .from('profiles')
+      .upsert(newProfile, { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Could not auto-create profile:', error.message);
+      return _localFallbackProfile(userId);
+    }
+
+    console.log('Auto-created profile for user:', userId);
+    return data;
+  } catch (err) {
+    console.warn('Auto-create profile error:', err);
+    return _localFallbackProfile(userId);
+  }
+}
+
+// Helper: return an in-memory fallback (won't persist)
+function _localFallbackProfile(userId) {
+  return {
+    id: userId,
+    username: 'user_' + userId.substring(0, 8),
+    display_name: 'New User',
+    bio: '',
+    avatar_url: null
+  };
 }
 
 async function updateProfile(userId, updates) {
