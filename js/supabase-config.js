@@ -1,5 +1,5 @@
 /* ========================================
-   SUPABASE Configuration
+   SUPABASE Configuration + Auth
    ======================================== */
 
 const SUPABASE_URL = 'https://pnihqpsppbfuzvrlmzgc.supabase.co';
@@ -20,7 +20,117 @@ function getSupabaseClient() {
   return supabaseClient;
 }
 
-// ---- Supabase Database Functions ----
+// ========================================
+// AUTH FUNCTIONS
+// ========================================
+
+async function signUpUser(email, password, username) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const { data, error } = await client.auth.signUp({
+    email,
+    password,
+    options: {
+      data: { username }
+    }
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+async function signInUser(email, password) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) throw error;
+  return data;
+}
+
+async function signOutUser() {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const { error } = await client.auth.signOut();
+  if (error) throw error;
+}
+
+async function getCurrentUser() {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  const { data: { user } } = await client.auth.getUser();
+  return user;
+}
+
+async function getCurrentSession() {
+  const client = getSupabaseClient();
+  if (!client) return null;
+
+  const { data: { session } } = await client.auth.getSession();
+  return session;
+}
+
+function onAuthStateChange(callback) {
+  const client = getSupabaseClient();
+  if (!client) return;
+
+  client.auth.onAuthStateChange((event, session) => {
+    callback(event, session);
+  });
+}
+
+// ========================================
+// PROFILE FUNCTIONS
+// ========================================
+
+async function getProfile(userId) {
+  try {
+    const client = getSupabaseClient();
+    if (!client) return null;
+
+    const { data, error } = await client
+      .from('profiles')
+      .select('*')
+      .eq('id', userId)
+      .single();
+
+    if (error) {
+      console.error('Error fetching profile:', error);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    console.error('Profile fetch error:', err);
+    return null;
+  }
+}
+
+async function updateProfile(userId, updates) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const { data, error } = await client
+    .from('profiles')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+// ========================================
+// POSTS FUNCTIONS (Updated for auth)
+// ========================================
+
 async function getPostsFromSupabase() {
   try {
     const client = getSupabaseClient();
@@ -90,6 +200,10 @@ async function deletePostFromSupabase(postId) {
     const client = getSupabaseClient();
     if (!client) throw new Error('Supabase not connected');
 
+    // Also delete related comments and bookmarks
+    await client.from('comments').delete().eq('post_id', postId);
+    await client.from('bookmarks').delete().eq('post_id', postId);
+
     const { error } = await client
       .from('posts')
       .delete()
@@ -105,7 +219,110 @@ async function deletePostFromSupabase(postId) {
   }
 }
 
-// Set up real-time listener for posts (after page loads)
+// ========================================
+// COMMENTS FUNCTIONS
+// ========================================
+
+async function getCommentsForPost(postId) {
+  try {
+    const client = getSupabaseClient();
+    if (!client) return [];
+
+    const { data, error } = await client
+      .from('comments')
+      .select('*')
+      .eq('post_id', postId)
+      .order('created_at', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching comments:', error);
+      return [];
+    }
+    return data || [];
+  } catch (err) {
+    console.error('Comments fetch error:', err);
+    return [];
+  }
+}
+
+async function addCommentToSupabase(comment) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const { data, error } = await client
+    .from('comments')
+    .insert([comment])
+    .select();
+
+  if (error) throw error;
+  return data[0];
+}
+
+async function deleteCommentFromSupabase(commentId) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const { error } = await client
+    .from('comments')
+    .delete()
+    .eq('id', commentId);
+
+  if (error) throw error;
+}
+
+// ========================================
+// BOOKMARKS FUNCTIONS
+// ========================================
+
+async function getBookmarksFromSupabase(userId) {
+  try {
+    const client = getSupabaseClient();
+    if (!client) return [];
+
+    const { data, error } = await client
+      .from('bookmarks')
+      .select('post_id')
+      .eq('user_id', userId);
+
+    if (error) {
+      console.error('Error fetching bookmarks:', error);
+      return [];
+    }
+    return (data || []).map(b => b.post_id);
+  } catch (err) {
+    console.error('Bookmarks fetch error:', err);
+    return [];
+  }
+}
+
+async function addBookmarkToSupabase(userId, postId) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const { error } = await client
+    .from('bookmarks')
+    .insert([{ user_id: userId, post_id: postId }]);
+
+  if (error) throw error;
+}
+
+async function removeBookmarkFromSupabase(userId, postId) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const { error } = await client
+    .from('bookmarks')
+    .delete()
+    .eq('user_id', userId)
+    .eq('post_id', postId);
+
+  if (error) throw error;
+}
+
+// ========================================
+// REALTIME LISTENER
+// ========================================
+
 function setupRealtimeListener() {
   const client = getSupabaseClient();
   if (!client) return;
@@ -116,6 +333,15 @@ function setupRealtimeListener() {
       { event: '*', schema: 'public', table: 'posts' },
       (payload) => {
         console.log('Posts updated:', payload);
+        if (window.refreshFeed) {
+          window.refreshFeed();
+        }
+      }
+    )
+    .on('postgres_changes',
+      { event: '*', schema: 'public', table: 'comments' },
+      (payload) => {
+        console.log('Comments updated:', payload);
         if (window.refreshFeed) {
           window.refreshFeed();
         }
