@@ -127,13 +127,42 @@ async function getProfile(userId) {
       .single();
 
     if (error) {
+      // If profiles table doesn't exist, create a fallback profile
+      if (error.message && (error.message.includes('schema cache') || error.code === '42P01' || error.message.includes('relation'))) {
+        console.warn('Profiles table not found — using fallback profile');
+        return {
+          id: userId,
+          username: 'user_' + userId.substring(0, 8),
+          display_name: 'New User',
+          bio: '',
+          avatar_url: null
+        };
+      }
+      // PGRST116 = no rows found — also create fallback
+      if (error.code === 'PGRST116') {
+        console.warn('No profile row found — using fallback profile');
+        return {
+          id: userId,
+          username: 'user_' + userId.substring(0, 8),
+          display_name: 'New User',
+          bio: '',
+          avatar_url: null
+        };
+      }
       console.error('Error fetching profile:', error);
       return null;
     }
     return data;
   } catch (err) {
     console.error('Profile fetch error:', err);
-    return null;
+    // Return fallback profile on any error
+    return {
+      id: userId,
+      username: 'user_' + userId.substring(0, 8),
+      display_name: 'New User',
+      bio: '',
+      avatar_url: null
+    };
   }
 }
 
@@ -225,9 +254,9 @@ async function deletePostFromSupabase(postId) {
     const client = getSupabaseClient();
     if (!client) throw new Error('Supabase not connected');
 
-    // Also delete related comments and bookmarks
-    await client.from('comments').delete().eq('post_id', postId);
-    await client.from('bookmarks').delete().eq('post_id', postId);
+    // Also delete related comments and bookmarks (ignore if tables don't exist)
+    try { await client.from('comments').delete().eq('post_id', postId); } catch (e) { /* table may not exist */ }
+    try { await client.from('bookmarks').delete().eq('post_id', postId); } catch (e) { /* table may not exist */ }
 
     const { error } = await client
       .from('posts')
@@ -260,6 +289,11 @@ async function getCommentsForPost(postId) {
       .order('created_at', { ascending: true });
 
     if (error) {
+      // Silently handle missing table
+      if (error.message && (error.message.includes('schema cache') || error.code === '42P01')) {
+        console.warn('Comments table not found — skipping');
+        return [];
+      }
       console.error('Error fetching comments:', error);
       return [];
     }
@@ -279,7 +313,12 @@ async function addCommentToSupabase(comment) {
     .insert([comment])
     .select();
 
-  if (error) throw error;
+  if (error) {
+    if (error.message && (error.message.includes('schema cache') || error.code === '42P01')) {
+      throw new Error('Comments feature is not set up yet. Please run SUPABASE_AUTH_SETUP.sql first!');
+    }
+    throw error;
+  }
   return data[0];
 }
 
@@ -310,6 +349,11 @@ async function getBookmarksFromSupabase(userId) {
       .eq('user_id', userId);
 
     if (error) {
+      // Silently handle missing table
+      if (error.message && (error.message.includes('schema cache') || error.code === '42P01')) {
+        console.warn('Bookmarks table not found — skipping');
+        return [];
+      }
       console.error('Error fetching bookmarks:', error);
       return [];
     }
@@ -328,7 +372,12 @@ async function addBookmarkToSupabase(userId, postId) {
     .from('bookmarks')
     .insert([{ user_id: userId, post_id: postId }]);
 
-  if (error) throw error;
+  if (error) {
+    if (error.message && (error.message.includes('schema cache') || error.code === '42P01')) {
+      throw new Error('Bookmarks feature is not set up yet. Please run SUPABASE_AUTH_SETUP.sql first!');
+    }
+    throw error;
+  }
 }
 
 async function removeBookmarkFromSupabase(userId, postId) {

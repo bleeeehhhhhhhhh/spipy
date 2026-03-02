@@ -190,6 +190,24 @@ async function handleProfileUpdate(e) {
 }
 
 // ---- Auth State ----
+function toggleUserMenu() {
+  const dropdown = document.getElementById('nav-dropdown');
+  dropdown.classList.toggle('open');
+}
+
+function closeUserMenu() {
+  const dropdown = document.getElementById('nav-dropdown');
+  if (dropdown) dropdown.classList.remove('open');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('nav-user-menu');
+  if (menu && !menu.contains(e.target)) {
+    closeUserMenu();
+  }
+});
+
 function updateNavAuthUI() {
   const loginBtn = document.getElementById('nav-login-btn');
   const userDiv = document.getElementById('nav-user');

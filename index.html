@@ -143,9 +143,26 @@
         <button class="btn-login" id="nav-login-btn" onclick="showAuthModal()">Login ✦</button>
         <!-- Logged in state (hidden by default) -->
         <div class="nav-user" id="nav-user" style="display: none;">
-          <div class="nav-avatar" id="nav-avatar">🌸</div>
-          <span class="nav-username" id="nav-username">User</span>
-          <button class="btn-logout" id="nav-logout-btn" onclick="handleSignOut()" title="Logout">↗</button>
+          <div class="nav-user-menu" id="nav-user-menu">
+            <button class="nav-user-trigger" onclick="toggleUserMenu()">
+              <div class="nav-avatar" id="nav-avatar">🌸</div>
+              <span class="nav-username" id="nav-username">User</span>
+              <span class="nav-chevron">▾</span>
+            </button>
+            <div class="nav-dropdown" id="nav-dropdown">
+              <button class="nav-dropdown-item" onclick="showProfileModal(); closeUserMenu()">
+                <span>✏️</span> Edit Profile
+              </button>
+              <button class="nav-dropdown-item"
+                onclick="document.getElementById('profile-section').scrollIntoView({behavior:'smooth'}); closeUserMenu()">
+                <span>👤</span> My Profile
+              </button>
+              <div class="nav-dropdown-divider"></div>
+              <button class="nav-dropdown-item logout" onclick="handleSignOut(); closeUserMenu()">
+                <span>👋</span> Logout
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
