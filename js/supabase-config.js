@@ -203,6 +203,43 @@ function _localFallbackProfile(userId) {
   };
 }
 
+// ========================================
+// AVATAR UPLOAD (Supabase Storage)
+// ========================================
+
+async function uploadAvatar(userId, file) {
+  const client = getSupabaseClient();
+  if (!client) throw new Error('Supabase not connected');
+
+  const fileExt = file.name.split('.').pop().toLowerCase();
+  const filePath = `${userId}/avatar.${fileExt}`;
+
+  // Upload to 'avatars' bucket (must exist in Supabase Storage)
+  const { data, error } = await client.storage
+    .from('avatars')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true // Overwrite existing avatar
+    });
+
+  if (error) {
+    console.error('Storage upload error:', error);
+    throw new Error('Failed to upload avatar: ' + error.message);
+  }
+
+  // Get the public URL
+  const { data: urlData } = client.storage
+    .from('avatars')
+    .getPublicUrl(filePath);
+
+  if (!urlData || !urlData.publicUrl) {
+    throw new Error('Could not get public URL for avatar');
+  }
+
+  // Append timestamp to bust cache
+  return urlData.publicUrl + '?t=' + Date.now();
+}
+
 async function updateProfile(userId, updates) {
   try {
     const client = getSupabaseClient();

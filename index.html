@@ -242,9 +242,16 @@
             style="min-height: 80px;"></textarea>
         </div>
         <div class="form-group">
-          <label class="form-label">Avatar URL 🖼️</label>
+          <label class="form-label">Profile Picture 🖼️</label>
+          <div class="avatar-upload-area">
+            <div class="avatar-preview-thumb" id="avatar-preview-thumb">🌸</div>
+            <label class="avatar-upload-btn">
+              📷 Choose Photo
+              <input type="file" id="edit-avatar-file" accept="image/*" onchange="previewAvatar(event)">
+            </label>
+          </div>
+          <div class="avatar-or-divider">or paste a URL</div>
           <input class="form-input" id="edit-avatar-url" type="url" placeholder="https://example.com/avatar.png">
-          <small class="form-hint">Paste a link to your profile picture</small>
         </div>
         <button class="btn-auth-submit" type="submit">
           Save Changes 💾
@@ -255,6 +262,8 @@
 
   <!-- ===== Hero Section ===== -->
   <section class="hero" id="hero">
+    <!-- 3D Cubes Background (ReactBits inspired) -->
+    <div class="cubes-bg" id="cubes-bg"></div>
     <div class="hero-content">
       <div class="hero-badge">
         ✦ Your cozy corner on the internet
@@ -612,26 +621,27 @@
     </div>
   </main>
 
-  <!-- ===== FAB (Floating Action Button) ===== -->
-  <div class="fab-buddy-wrap">
-    <svg class="btn-buddy fab-buddy sad" width="30" height="36" viewBox="0 0 30 36">
-      <path
-        d="M4 18 Q4 4 15 4 Q26 4 26 18 L26 28 Q24 25 22 28 Q20 31 18 28 Q16 25 14 28 Q12 31 10 28 Q8 25 6 28 L4 28 Z"
-        fill="#FFF5F5" stroke="#FFD6E0" stroke-width="1" />
-      <ellipse cx="4" cy="20" rx="2.5" ry="1.5" fill="#FFF5F5" stroke="#FFD6E0" stroke-width="0.8"
-        transform="rotate(-15 4 20)" />
-      <ellipse cx="26" cy="20" rx="2.5" ry="1.5" fill="#FFF5F5" stroke="#FFD6E0" stroke-width="0.8"
-        transform="rotate(15 26 20)" />
-      <circle class="buddy-eye-l" cx="11" cy="15" r="1.5" fill="#5A4A6A" />
-      <circle class="buddy-eye-r" cx="19" cy="15" r="1.5" fill="#5A4A6A" />
-      <circle cx="11.5" cy="14.6" r="0.6" fill="#FFF" />
-      <circle cx="19.5" cy="14.6" r="0.6" fill="#FFF" />
-      <ellipse class="buddy-blush" cx="7" cy="19" rx="2.5" ry="1.5" fill="#FFB6C1" opacity="0.5" />
-      <ellipse class="buddy-blush" cx="23" cy="19" rx="2.5" ry="1.5" fill="#FFB6C1" opacity="0.5" />
-      <path class="buddy-mouth" d="M13 21 Q15 19 17 21" stroke="#FF85A2" stroke-width="1" fill="none"
-        stroke-linecap="round" />
-    </svg>
-    <button class="fab" id="fab" title="Create a post">✦</button>
+  <!-- ===== Bubble Menu (ReactBits inspired) ===== -->
+  <div class="bubble-menu" id="bubble-menu">
+    <div class="bubble-items">
+      <button class="bubble-item" id="bubble-note" title="Write a Note">
+        📝
+        <span class="bubble-tooltip">Note</span>
+      </button>
+      <button class="bubble-item" id="bubble-song" title="Share a Song">
+        🎵
+        <span class="bubble-tooltip">Song</span>
+      </button>
+      <button class="bubble-item" id="bubble-photo" title="Share a Photo">
+        📷
+        <span class="bubble-tooltip">Photo</span>
+      </button>
+      <button class="bubble-item" id="bubble-top" title="Scroll to Top">
+        ⬆️
+        <span class="bubble-tooltip">Top</span>
+      </button>
+    </div>
+    <button class="bubble-trigger" id="bubble-trigger" title="Menu">✦</button>
   </div>
 
   <!-- ===== Toast Container ===== -->

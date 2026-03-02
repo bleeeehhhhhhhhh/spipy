@@ -35,6 +35,18 @@ function showProfileModal() {
   document.getElementById('edit-display-name').value = currentProfile.display_name || '';
   document.getElementById('edit-bio').value = currentProfile.bio || '';
   document.getElementById('edit-avatar-url').value = currentProfile.avatar_url || '';
+  // Reset file input
+  const fileInput = document.getElementById('edit-avatar-file');
+  if (fileInput) fileInput.value = '';
+  // Show current avatar in preview thumb
+  const thumb = document.getElementById('avatar-preview-thumb');
+  if (thumb) {
+    if (currentProfile.avatar_url) {
+      thumb.innerHTML = `<img src="${currentProfile.avatar_url}" alt="avatar">`;
+    } else {
+      thumb.textContent = '🌸';
+    }
+  }
   document.getElementById('profile-modal').style.display = 'flex';
   document.body.style.overflow = 'hidden';
 }
@@ -171,13 +183,34 @@ async function handleProfileUpdate(e) {
 
   const displayName = document.getElementById('edit-display-name').value.trim();
   const bio = document.getElementById('edit-bio').value.trim();
-  const avatarUrl = document.getElementById('edit-avatar-url').value.trim();
+  const avatarUrlInput = document.getElementById('edit-avatar-url').value.trim();
+  const avatarFileInput = document.getElementById('edit-avatar-file');
+  const avatarFile = avatarFileInput && avatarFileInput.files[0];
+
+  let avatarUrl = avatarUrlInput || null;
 
   try {
+    // If a file was chosen, upload it to Supabase Storage
+    if (avatarFile) {
+      try {
+        showToast('📤 Uploading avatar...');
+        avatarUrl = await uploadAvatar(currentUser.id, avatarFile);
+        showToast('✅ Avatar uploaded!');
+      } catch (uploadErr) {
+        console.error('Avatar upload error:', uploadErr);
+        // Fall back to URL if upload fails
+        if (!avatarUrl) {
+          // Convert file to base64 data URL as last resort
+          avatarUrl = await fileToBase64(avatarFile);
+        }
+        showToast('⚠️ Upload failed, using fallback');
+      }
+    }
+
     const updated = await updateProfile(currentUser.id, {
       display_name: displayName,
       bio: bio,
-      avatar_url: avatarUrl || null
+      avatar_url: avatarUrl
     });
     currentProfile = updated;
     updateProfileUI();
@@ -187,6 +220,39 @@ async function handleProfileUpdate(e) {
   } catch (error) {
     showToast('😭 Error: ' + error.message);
   }
+}
+
+// Convert file to base64 data URL (fallback)
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// Preview avatar in the profile edit modal
+function previewAvatar(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.size > 2 * 1024 * 1024) {
+    showToast('🚫 Image too large! Max 2MB for avatars');
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const thumb = document.getElementById('avatar-preview-thumb');
+    if (thumb) {
+      thumb.innerHTML = `<img src="${e.target.result}" alt="preview">`;
+    }
+    // Clear URL field since file takes priority
+    document.getElementById('edit-avatar-url').value = '';
+  };
+  reader.readAsDataURL(file);
 }
 
 // ---- Auth State ----
@@ -850,20 +916,7 @@ function handleNavbarScroll() {
   }
 }
 
-// ---- FAB & Nav Create Button ----
-document.getElementById('fab').addEventListener('click', () => {
-  if (!currentUser) {
-    showAuthModal();
-    return;
-  }
-  const createArea = document.getElementById('create-area');
-  createArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  createArea.style.boxShadow = '0 0 0 4px rgba(255, 133, 162, 0.4), 0 12px 40px rgba(255, 182, 193, 0.25)';
-  setTimeout(() => {
-    createArea.style.boxShadow = '';
-  }, 1500);
-});
-
+// ---- Nav Create Button ----
 document.getElementById('nav-create-btn').addEventListener('click', (e) => {
   e.preventDefault();
   if (!currentUser) {
@@ -872,6 +925,66 @@ document.getElementById('nav-create-btn').addEventListener('click', (e) => {
   }
   document.getElementById('create-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
 });
+
+// ---- Bubble Menu (ReactBits inspired) ----
+const bubbleTrigger = document.getElementById('bubble-trigger');
+const bubbleMenu = document.getElementById('bubble-menu');
+
+if (bubbleTrigger && bubbleMenu) {
+  bubbleTrigger.addEventListener('click', () => {
+    bubbleMenu.classList.toggle('open');
+    bubbleTrigger.classList.toggle('open');
+  });
+
+  // Close bubble menu when clicking outside
+  document.addEventListener('click', (e) => {
+    if (bubbleMenu && !bubbleMenu.contains(e.target)) {
+      bubbleMenu.classList.remove('open');
+      bubbleTrigger.classList.remove('open');
+    }
+  });
+
+  // Bubble menu item actions
+  document.getElementById('bubble-note')?.addEventListener('click', () => {
+    if (!currentUser) { showAuthModal(); return; }
+    bubbleMenu.classList.remove('open');
+    bubbleTrigger.classList.remove('open');
+    // Activate note tab and scroll to create area
+    document.querySelectorAll('.create-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.create-form').forEach(f => f.classList.remove('active'));
+    document.querySelector('[data-tab="note"]')?.classList.add('active');
+    document.getElementById('form-note')?.classList.add('active');
+    document.getElementById('create-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  document.getElementById('bubble-song')?.addEventListener('click', () => {
+    if (!currentUser) { showAuthModal(); return; }
+    bubbleMenu.classList.remove('open');
+    bubbleTrigger.classList.remove('open');
+    document.querySelectorAll('.create-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.create-form').forEach(f => f.classList.remove('active'));
+    document.querySelector('[data-tab="song"]')?.classList.add('active');
+    document.getElementById('form-song')?.classList.add('active');
+    document.getElementById('create-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  document.getElementById('bubble-photo')?.addEventListener('click', () => {
+    if (!currentUser) { showAuthModal(); return; }
+    bubbleMenu.classList.remove('open');
+    bubbleTrigger.classList.remove('open');
+    document.querySelectorAll('.create-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.create-form').forEach(f => f.classList.remove('active'));
+    document.querySelector('[data-tab="image"]')?.classList.add('active');
+    document.getElementById('form-image')?.classList.add('active');
+    document.getElementById('create-area').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  document.getElementById('bubble-top')?.addEventListener('click', () => {
+    bubbleMenu.classList.remove('open');
+    bubbleTrigger.classList.remove('open');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+}
 
 // ---- Drag & Drop for Images ----
 const uploadArea = document.getElementById('upload-area');
@@ -945,12 +1058,94 @@ document.getElementById('profile-modal').addEventListener('click', (e) => {
   }
 });
 
+// ---- Click Spark Effect (ReactBits inspired) ----
+function initClickSpark() {
+  const sparkColors = ['#FFB6C1', '#C4A8E0', '#89CFF0', '#FFC947', '#FF85A2', '#B5EAD7', '#FFD6E0', '#E6E6FA'];
+
+  document.addEventListener('click', (e) => {
+    // Don't spark on interactive elements to avoid visual clash
+    if (e.target.closest('button, a, input, textarea, select, .modal-overlay')) return;
+
+    const count = 8 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < count; i++) {
+      const spark = document.createElement('div');
+      spark.className = 'click-spark';
+      const angle = (Math.PI * 2 * i) / count + (Math.random() - 0.5) * 0.6;
+      const dist = 30 + Math.random() * 50;
+      spark.style.left = e.clientX + 'px';
+      spark.style.top = e.clientY + 'px';
+      spark.style.background = sparkColors[Math.floor(Math.random() * sparkColors.length)];
+      spark.style.setProperty('--spark-tx', Math.cos(angle) * dist + 'px');
+      spark.style.setProperty('--spark-ty', Math.sin(angle) * dist + 'px');
+      spark.style.width = (4 + Math.random() * 5) + 'px';
+      spark.style.height = spark.style.width;
+      document.body.appendChild(spark);
+      setTimeout(() => spark.remove(), 600);
+    }
+  });
+}
+
+// ---- 3D Cubes Background (ReactBits inspired) ----
+function createCubes() {
+  const container = document.getElementById('cubes-bg');
+  if (!container) return;
+
+  const cubeColors = [
+    'rgba(255, 182, 193, 0.15)',
+    'rgba(196, 168, 224, 0.15)',
+    'rgba(137, 207, 240, 0.15)',
+    'rgba(255, 245, 186, 0.15)',
+    'rgba(181, 234, 215, 0.15)',
+    'rgba(255, 214, 224, 0.12)',
+    'rgba(230, 230, 250, 0.12)',
+  ];
+
+  const cubeCount = 8;
+  for (let i = 0; i < cubeCount; i++) {
+    const size = 30 + Math.random() * 50;
+    const color = cubeColors[Math.floor(Math.random() * cubeColors.length)];
+    const duration = 15 + Math.random() * 20;
+    const delay = Math.random() * duration;
+    const rotDuration = 8 + Math.random() * 12;
+    const drift = (Math.random() - 0.5) * 100;
+    const left = Math.random() * 100;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'cube-wrapper';
+    wrapper.style.cssText = `
+      width: ${size}px; height: ${size}px;
+      left: ${left}%;
+      --cube-size: ${size}px;
+      --cube-drift: ${drift}px;
+      animation-duration: ${duration}s;
+      animation-delay: -${delay}s;
+    `;
+
+    const cube = document.createElement('div');
+    cube.className = 'cube';
+    cube.style.animationDuration = rotDuration + 's';
+
+    const faces = ['front', 'back', 'right', 'left', 'top', 'bottom'];
+    faces.forEach(face => {
+      const el = document.createElement('div');
+      el.className = `cube-face ${face}`;
+      el.style.background = color;
+      cube.appendChild(el);
+    });
+
+    wrapper.appendChild(cube);
+    container.appendChild(wrapper);
+  }
+}
+
 // ---- Initialize ----
 window.addEventListener('scroll', handleNavbarScroll);
 
 async function initializeApp() {
   initTheme();
   createSparkles();
+  initClickSpark();
+  createCubes();
 
   // Setup auth listener
   onAuthStateChange(onAuthChange);
