@@ -32,11 +32,36 @@ async function signUpUser(email, password, username) {
     email,
     password,
     options: {
-      data: { username }
+      data: { username },
+      emailRedirectTo: window.location.href
     }
   });
 
   if (error) throw error;
+
+  // Check if the user already exists (Supabase returns a user with
+  // identities array empty when signup is attempted with existing email)
+  if (data.user && data.user.identities && data.user.identities.length === 0) {
+    throw new Error('An account with this email already exists. Please login instead.');
+  }
+
+  // If session is returned, user is auto-confirmed and logged in
+  if (data.session) {
+    return data;
+  }
+
+  // No session — try to sign in immediately (works if autoconfirm is on)
+  try {
+    const signInResult = await client.auth.signInWithPassword({ email, password });
+    if (!signInResult.error && signInResult.data.session) {
+      return signInResult.data;
+    }
+  } catch (e) {
+    // Sign-in failed, that's okay — fall through to confirmation message
+  }
+
+  // If we get here, email confirmation is required
+  data._needsConfirmation = true;
   return data;
 }
 

@@ -71,19 +71,48 @@ async function handleSignUp(e) {
     return;
   }
 
+  if (password.length < 6) {
+    showToast('🔑 Password must be at least 6 characters!');
+    return;
+  }
+
   btn.textContent = 'Creating...';
   btn.disabled = true;
 
   try {
-    await signUpUser(email, password, username);
-    showToast('✨ Account created! Welcome to Spipy!');
-    hideAuthModal();
-    // Clear form
+    const result = await signUpUser(email, password, username);
+
+    if (result._needsConfirmation) {
+      // Email confirmation is required
+      showToast('📧 Check your email to confirm your account, then login!');
+      switchAuthTab('login');
+      // Pre-fill email in login form
+      document.getElementById('login-email').value = email;
+    } else if (result.session) {
+      // Auto-logged in!
+      showToast('✨ Account created! Welcome to Spipy!');
+      hideAuthModal();
+    } else {
+      // No session and no confirmation flag — unusual, show confirmation message
+      showToast('📧 Account created! Please check your email to confirm, then login.');
+      switchAuthTab('login');
+      document.getElementById('login-email').value = email;
+    }
+    // Clear signup form
     document.getElementById('signup-username').value = '';
     document.getElementById('signup-email').value = '';
     document.getElementById('signup-password').value = '';
   } catch (error) {
-    showToast('😭 ' + (error.message || 'Signup failed'));
+    const msg = (error.message || 'Signup failed').toLowerCase();
+    if (msg.includes('already') || msg.includes('exists') || msg.includes('duplicate') || msg.includes('unique')) {
+      showToast('🌸 An account with this email already exists! Try logging in.');
+      switchAuthTab('login');
+      document.getElementById('login-email').value = email;
+    } else if (msg.includes('password') && (msg.includes('short') || msg.includes('weak') || msg.includes('least'))) {
+      showToast('🔑 Password is too weak — use at least 6 characters!');
+    } else {
+      showToast('😭 ' + (error.message || 'Signup failed'));
+    }
   } finally {
     btn.textContent = 'Create Account ✨';
     btn.disabled = false;
@@ -111,7 +140,16 @@ async function handleSignIn(e) {
     document.getElementById('login-email').value = '';
     document.getElementById('login-password').value = '';
   } catch (error) {
-    showToast('😭 ' + (error.message || 'Login failed'));
+    const msg = (error.message || 'Login failed').toLowerCase();
+    if (msg.includes('email not confirmed') || msg.includes('not confirmed') || msg.includes('email_not_confirmed')) {
+      showToast('📧 Please check your email and confirm your account first!');
+    } else if (msg.includes('invalid login') || msg.includes('invalid_credentials') || msg.includes('invalid credentials')) {
+      showToast('🔑 Wrong email or password — try again!');
+    } else if (msg.includes('too many requests') || msg.includes('rate limit')) {
+      showToast('⏳ Too many attempts! Please wait a moment and try again.');
+    } else {
+      showToast('😭 ' + (error.message || 'Login failed'));
+    }
   } finally {
     btn.textContent = 'Login ♡';
     btn.disabled = false;
