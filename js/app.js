@@ -208,6 +208,7 @@ async function handleProfileUpdate(e) {
     }
 
     const updated = await updateProfile(currentUser.id, {
+      username: currentProfile?.username || ('user_' + currentUser.id.substring(0, 8)),
       display_name: displayName,
       bio: bio,
       avatar_url: avatarUrl
