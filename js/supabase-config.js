@@ -127,11 +127,6 @@ async function getProfile(userId) {
       .single();
 
     if (error) {
-      // If profiles table doesn't exist, return a local fallback
-      if (error.message && (error.message.includes('schema cache') || error.code === '42P01' || error.message.includes('relation') || error.message.includes('Could not find'))) {
-        console.warn('Profiles table not found — using fallback profile. Run SUPABASE_AUTH_SETUP.sql to fix this!');
-        return _localFallbackProfile(userId);
-      }
       // PGRST116 = no rows found — auto-create the profile in the database
       if (error.code === 'PGRST116') {
         console.warn('No profile row found — auto-creating profile...');
@@ -143,7 +138,7 @@ async function getProfile(userId) {
     return data;
   } catch (err) {
     console.error('Profile fetch error:', err);
-    return _localFallbackProfile(userId);
+    return null;
   }
 }
 
@@ -259,34 +254,10 @@ async function updateProfile(userId, updates) {
       .single();
 
     if (error) {
-      // If profiles table doesn't exist, return a local fallback
-      if (error.message && (error.message.includes('schema cache') || error.code === '42P01' || error.message.includes('relation') || error.message.includes('Could not find'))) {
-        console.warn('Profiles table not found — returning local profile');
-        return {
-          id: userId,
-          username: updates.username || 'user_' + userId.substring(0, 8),
-          display_name: updates.display_name || 'New User',
-          bio: updates.bio || '',
-          avatar_url: updates.avatar_url || null,
-          ...updates
-        };
-      }
       throw error;
     }
     return data;
   } catch (err) {
-    // Catch-all: if it's a missing table error, return fallback
-    if (err.message && (err.message.includes('schema cache') || err.message.includes('Could not find') || err.message.includes('relation'))) {
-      console.warn('Profiles table error — returning local profile');
-      return {
-        id: userId,
-        username: updates.username || 'user_' + userId.substring(0, 8),
-        display_name: updates.display_name || 'New User',
-        bio: updates.bio || '',
-        avatar_url: updates.avatar_url || null,
-        ...updates
-      };
-    }
     throw err;
   }
 }
