@@ -606,16 +606,24 @@ async function loadComments(postId) {
   if (comments.length === 0) {
     listEl.innerHTML = '<div class="comment-empty">No comments yet — be the first! 💬</div>';
   } else {
-    listEl.innerHTML = comments.map(c => `
+    listEl.innerHTML = comments.map(c => {
+      const avatarUrl = c.profiles?.avatar_url || null;
+      return `
       <div class="comment-item">
         <div class="comment-header">
-          <span class="comment-author">@${escapeHtml(c.username)}</span>
+          <div class="comment-author-info">
+            <span class="comment-author-avatar">
+              ${avatarUrl ? `<img src="${avatarUrl}" alt="avatar" class="comment-avatar-img">` : '🌸'}
+            </span>
+            <span class="comment-author">@${escapeHtml(c.username || c.profiles?.username || 'Anonymous')}</span>
+          </div>
           <span class="comment-time">${getTimeAgo(c.created_at)}</span>
           ${currentUser && currentUser.id === c.user_id ? `<button class="comment-delete-btn" onclick="deleteComment('${c.id}', '${postId}')" title="Delete">✕</button>` : ''}
         </div>
         <p class="comment-text">${escapeHtml(c.content)}</p>
       </div>
-    `).join('');
+    `;
+    }).join('');
   }
 }
 

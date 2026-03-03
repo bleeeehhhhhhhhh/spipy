@@ -365,7 +365,7 @@ async function getCommentsForPost(postId) {
 
     const { data, error } = await client
       .from('comments')
-      .select('*')
+      .select('id, post_id, user_id, username, content, created_at, profiles(avatar_url, username)')
       .eq('post_id', postId)
       .order('created_at', { ascending: true });
 
