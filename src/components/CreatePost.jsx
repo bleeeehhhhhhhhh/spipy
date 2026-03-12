@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
-import { createPost, convertSpotifyUrl, generateId } from '../lib/supabase';
+import { createPost, convertSpotifyUrl, generateId, uploadPostImage } from '../lib/supabase';
 
 export default function CreatePost({ onPostCreated, defaultTab = 'note' }) {
     const { user, profile } = useAuth();
@@ -12,6 +12,8 @@ export default function CreatePost({ onPostCreated, defaultTab = 'note' }) {
     const [songCaption, setSongCaption] = useState('');
     const [imageCaption, setImageCaption] = useState('');
     const [imagePreview, setImagePreview] = useState('');
+    const [imageFile, setImageFile] = useState(null);
+    const [posting, setPosting] = useState(false);
     const fileInputRef = useRef(null);
 
     if (!user) {
@@ -28,6 +30,7 @@ export default function CreatePost({ onPostCreated, defaultTab = 'note' }) {
         const file = e.target.files[0];
         if (!file) return;
         if (file.size > 5 * 1024 * 1024) { showToast('🚫 Image too large! Max 5MB'); return; }
+        setImageFile(file);
         const reader = new FileReader();
         reader.onload = (ev) => setImagePreview(ev.target.result);
         reader.readAsDataURL(file);
@@ -74,21 +77,31 @@ export default function CreatePost({ onPostCreated, defaultTab = 'note' }) {
                 break;
             }
             case 'image': {
-                if (!imagePreview) { showToast('📷 Upload a photo first!'); return; }
-                post.content = imagePreview;
+                if (!imageFile) { showToast('📷 Upload a photo first!'); return; }
+                try {
+                    const imageUrl = await uploadPostImage(user.id, imageFile);
+                    post.content = imageUrl;
+                } catch (uploadErr) {
+                    showToast('😭 Failed to upload image: ' + uploadErr.message);
+                    return;
+                }
                 post.caption = imageCaption;
                 break;
             }
         }
 
+        setPosting(true);
         try {
             await createPost(post);
             showToast('✨ Posted successfully!');
             setNoteText(''); setSongUrl(''); setSongCaption('');
-            setImageCaption(''); setImagePreview('');
+            setImageCaption(''); setImagePreview(''); setImageFile(null);
             if (onPostCreated) onPostCreated();
         } catch (error) {
+            console.error('Post creation failed:', error);
             showToast('😭 Error posting: ' + error.message);
+        } finally {
+            setPosting(false);
         }
     };
 
@@ -115,7 +128,7 @@ export default function CreatePost({ onPostCreated, defaultTab = 'note' }) {
                             value={noteText} onChange={e => setNoteText(e.target.value)} />
                     </div>
                     <div className="btn-buddy-wrap post-wrap">
-                        <button className="btn-post" onClick={handlePost}>Post Note ✨</button>
+                        <button className="btn-post" onClick={handlePost} disabled={posting}>{posting ? 'Posting...' : 'Post Note ✨'}</button>
                     </div>
                 </div>
             )}
@@ -133,7 +146,7 @@ export default function CreatePost({ onPostCreated, defaultTab = 'note' }) {
                             value={songCaption} onChange={e => setSongCaption(e.target.value)} />
                     </div>
                     <div className="btn-buddy-wrap post-wrap">
-                        <button className="btn-post" onClick={handlePost}>Share Song 🎶</button>
+                        <button className="btn-post" onClick={handlePost} disabled={posting}>{posting ? 'Sharing...' : 'Share Song 🎶'}</button>
                     </div>
                 </div>
             )}
@@ -156,7 +169,7 @@ export default function CreatePost({ onPostCreated, defaultTab = 'note' }) {
                             value={imageCaption} onChange={e => setImageCaption(e.target.value)} />
                     </div>
                     <div className="btn-buddy-wrap post-wrap">
-                        <button className="btn-post" onClick={handlePost}>Share Photo 🌈</button>
+                        <button className="btn-post" onClick={handlePost} disabled={posting}>{posting ? 'Uploading...' : 'Share Photo 🌈'}</button>
                     </div>
                 </div>
             )}

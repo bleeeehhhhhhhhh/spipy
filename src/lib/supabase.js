@@ -12,18 +12,16 @@ export async function signUpUser(email, password, username) {
         password,
         options: {
             data: { username },
-            emailRedirectTo: window.location.href,
+            emailRedirectTo: window.location.origin,
         },
     });
     if (error) throw error;
     if (data.user?.identities?.length === 0) {
         throw new Error('An account with this email already exists. Please login instead.');
     }
+    // If a session was returned, signup + auto-confirm worked
     if (data.session) return data;
-    try {
-        const res = await supabase.auth.signInWithPassword({ email, password });
-        if (!res.error && res.data.session) return res.data;
-    } catch { }
+    // No session means email confirmation is required
     data._needsConfirmation = true;
     return data;
 }
@@ -92,28 +90,100 @@ export async function updateProfile(userId, updates) {
 }
 
 export async function uploadAvatar(userId, file) {
-    const ext = file.name.split('.').pop().toLowerCase();
-    const path = `${userId}/avatar.${ext}`;
-    const { error } = await supabase.storage.from('avatars').upload(path, file, { cacheControl: '3600', upsert: true });
-    if (error) throw new Error('Failed to upload avatar: ' + error.message);
-    const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
-    if (!urlData?.publicUrl) throw new Error('Could not get public URL for avatar');
-    return urlData.publicUrl + '?t=' + Date.now();
+    // Try Supabase Storage first
+    try {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const path = `${userId}/avatar.${ext}`;
+        const { error } = await supabase.storage.from('avatars').upload(path, file, { cacheControl: '3600', upsert: true });
+        if (!error) {
+            const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
+            if (urlData?.publicUrl) return urlData.publicUrl + '?t=' + Date.now();
+        }
+        console.warn('Avatar storage upload failed, falling back to compressed base64:', error?.message);
+    } catch (err) {
+        console.warn('Avatar storage not available, using compressed base64:', err.message);
+    }
+
+    // Fallback: compress and return base64 (smaller for avatars)
+    return await compressImage(file, 200, 0.7);
+}
+
+export async function uploadPostImage(userId, file) {
+    // Try Supabase Storage first
+    try {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const path = `${userId}/${uniqueName}.${ext}`;
+        const { error } = await supabase.storage.from('post-images').upload(path, file, { cacheControl: '3600', upsert: false });
+        if (!error) {
+            const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(path);
+            if (urlData?.publicUrl) return urlData.publicUrl;
+        }
+        console.warn('Storage upload failed, falling back to compressed base64:', error?.message);
+    } catch (err) {
+        console.warn('Storage not available, using compressed base64:', err.message);
+    }
+
+    // Fallback: compress and return base64
+    return await compressImage(file, 800, 0.7);
+}
+
+// Compress an image file to fit safely in the database
+async function compressImage(file, maxDimension = 800, quality = 0.7) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let { width, height } = img;
+
+                // Scale down if larger than maxDimension
+                if (width > maxDimension || height > maxDimension) {
+                    if (width > height) {
+                        height = Math.round((height * maxDimension) / width);
+                        width = maxDimension;
+                    } else {
+                        width = Math.round((width * maxDimension) / height);
+                        height = maxDimension;
+                    }
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => reject(new Error('Failed to load image for compression'));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Failed to read image file'));
+        reader.readAsDataURL(file);
+    });
 }
 
 // ---- POSTS ----
 export async function getPosts() {
-    const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('timestamp', { ascending: false });
-    if (error) { console.error('Error fetching posts:', error); return []; }
-    return data || [];
+    try {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .order('timestamp', { ascending: false });
+        if (error) { console.error('Error fetching posts:', error); return []; }
+        return data || [];
+    } catch (err) {
+        console.error('Failed to fetch posts:', err);
+        return [];
+    }
 }
 
 export async function createPost(post) {
     const { data, error } = await supabase.from('posts').insert([post]).select();
-    if (error) throw new Error(error.message);
+    if (error) {
+        console.error('Create post error:', error);
+        throw new Error(error.message);
+    }
     return data[0];
 }
 
@@ -196,7 +266,10 @@ export function subscribeToChanges(callback) {
 
 // ---- HELPERS ----
 export function generateId() {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        return crypto.randomUUID();
+    }
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 6);
 }
 
 export function convertSpotifyUrl(url) {

@@ -13,21 +13,46 @@ export function AuthProvider({ children }) {
         supabase.auth.getSession().then(async ({ data: { session } }) => {
             if (session?.user) {
                 setUser(session.user);
-                const p = await getProfile(session.user.id);
-                setProfile(p);
-                const b = await getBookmarks(session.user.id);
-                setBookmarks(b);
+                try {
+                    const p = await getProfile(session.user.id);
+                    setProfile(p);
+                } catch (err) {
+                    console.error('Failed to load profile:', err);
+                }
+                try {
+                    const b = await getBookmarks(session.user.id);
+                    setBookmarks(b);
+                } catch (err) {
+                    console.error('Failed to load bookmarks:', err);
+                }
             }
+            setLoading(false);
+        }).catch(err => {
+            console.error('Failed to get session:', err);
             setLoading(false);
         });
 
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            if (event === 'SIGNED_OUT') {
+                setUser(null);
+                setProfile(null);
+                setBookmarks([]);
+                return;
+            }
             if (session?.user) {
                 setUser(session.user);
-                const p = await getProfile(session.user.id);
-                setProfile(p);
-                const b = await getBookmarks(session.user.id);
-                setBookmarks(b);
+                try {
+                    const p = await getProfile(session.user.id);
+                    setProfile(p);
+                } catch (err) {
+                    console.error('Failed to load profile on auth change:', err);
+                }
+                try {
+                    const b = await getBookmarks(session.user.id);
+                    setBookmarks(b);
+                } catch (err) {
+                    console.error('Failed to load bookmarks on auth change:', err);
+                }
             } else {
                 setUser(null);
                 setProfile(null);
