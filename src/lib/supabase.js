@@ -3,16 +3,30 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://pnihqpsppbfuzvrlmzgc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuaWhxcHNwcGJmdXp2cmxtemdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5OTY0MTcsImV4cCI6MjA4NzU3MjQxN30.z-G_HJz_Q7LcppgndwUnOLaDb9pi2rjRyNl4JivtpJY';
 
+// CRITICAL: Use skipAutoInitialize to prevent the GoTrueClient constructor from
+// calling initialize() with navigatorLock, which fails on Render deployments with
+// "this.lock is not a function" / "no-lock" error.
+// We patch the lock BEFORE calling initialize() manually.
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
         persistSession: true,
         detectSessionInUrl: true,
         flowType: 'pkce',
-        lock: async (name, acquireTimeout, fn) => {
-            // Bypass navigator.locks to prevent deadlocks
-            return await fn();
-        },
+        skipAutoInitialize: true,
     },
+});
+
+// Safe lock function that bypasses navigator.locks entirely
+const safeLock = async (name, acquireTimeout, fn) => {
+    return await fn();
+};
+
+// Patch the lock function on the auth client BEFORE initialization
+supabase.auth.lock = safeLock;
+
+// Now manually initialize auth — this uses our safe lock function
+supabase.auth.initialize().catch((err) => {
+    console.error('Supabase auth init error:', err);
 });
 
 // ---- AUTH ----
@@ -100,18 +114,24 @@ export async function updateProfile(userId, updates) {
 }
 
 export async function uploadAvatar(userId, file) {
-    // Try Supabase Storage first
+    // Try Supabase Storage first (with timeout)
     try {
         const ext = file.name.split('.').pop().toLowerCase();
         const path = `${userId}/avatar.${ext}`;
-        const { error } = await supabase.storage.from('avatars').upload(path, file, { cacheControl: '3600', upsert: true });
+
+        const uploadWithTimeout = Promise.race([
+            supabase.storage.from('avatars').upload(path, file, { cacheControl: '3600', upsert: true }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timed out')), 15000)),
+        ]);
+
+        const { error } = await uploadWithTimeout;
         if (!error) {
             const { data: urlData } = supabase.storage.from('avatars').getPublicUrl(path);
             if (urlData?.publicUrl) return urlData.publicUrl + '?t=' + Date.now();
         }
         console.warn('Avatar storage upload failed, falling back to compressed base64:', error?.message);
     } catch (err) {
-        console.warn('Avatar storage not available, using compressed base64:', err.message);
+        console.warn('Avatar storage not available or timed out, using compressed base64:', err.message);
     }
 
     // Fallback: compress and return base64 (smaller for avatars)
@@ -119,19 +139,26 @@ export async function uploadAvatar(userId, file) {
 }
 
 export async function uploadPostImage(userId, file) {
-    // Try Supabase Storage first
+    // Try Supabase Storage first (with timeout to prevent hanging)
     try {
         const ext = file.name.split('.').pop().toLowerCase();
         const uniqueName = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
         const path = `${userId}/${uniqueName}.${ext}`;
-        const { error } = await supabase.storage.from('post-images').upload(path, file, { cacheControl: '3600', upsert: false });
+
+        // Wrap storage upload with a 15-second timeout
+        const uploadWithTimeout = Promise.race([
+            supabase.storage.from('post-images').upload(path, file, { cacheControl: '3600', upsert: false }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Upload timed out')), 15000)),
+        ]);
+
+        const { error } = await uploadWithTimeout;
         if (!error) {
             const { data: urlData } = supabase.storage.from('post-images').getPublicUrl(path);
             if (urlData?.publicUrl) return urlData.publicUrl;
         }
         console.warn('Storage upload failed, falling back to compressed base64:', error?.message);
     } catch (err) {
-        console.warn('Storage not available, using compressed base64:', err.message);
+        console.warn('Storage not available or timed out, using compressed base64:', err.message);
     }
 
     // Fallback: compress and return base64
@@ -189,7 +216,13 @@ export async function getPosts() {
 }
 
 export async function createPost(post) {
-    const { data, error } = await supabase.from('posts').insert([post]).select();
+    // Wrap with timeout to prevent hanging forever
+    const insertWithTimeout = Promise.race([
+        supabase.from('posts').insert([post]).select(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Post creation timed out — please try again')), 15000)),
+    ]);
+
+    const { data, error } = await insertWithTimeout;
     if (error) {
         console.error('Create post error:', error);
         throw new Error(error.message);
