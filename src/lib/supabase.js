@@ -8,7 +8,10 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
         persistSession: true,
         detectSessionInUrl: true,
         flowType: 'pkce',
-        lock: 'no-lock',
+        lock: async (name, acquireTimeout, fn) => {
+            // Bypass navigator.locks to prevent deadlocks
+            return await fn();
+        },
     },
 });
 
