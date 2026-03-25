@@ -2653,11 +2653,15 @@ h6 {
 .floating-mascot {
   position: fixed;
   z-index: 60;
-  pointer-events: auto;
+  pointer-events: none;
   cursor: pointer;
   user-select: none;
   will-change: left, top;
   transition: none;
+}
+
+.floating-mascot .mascot-svg {
+  pointer-events: auto;
 }
 
 .floating-mascot.idle-sway {

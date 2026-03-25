@@ -3,30 +3,32 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://pnihqpsppbfuzvrlmzgc.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBuaWhxcHNwcGJmdXp2cmxtemdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE5OTY0MTcsImV4cCI6MjA4NzU3MjQxN30.z-G_HJz_Q7LcppgndwUnOLaDb9pi2rjRyNl4JivtpJY';
 
-// CRITICAL: Use skipAutoInitialize to prevent the GoTrueClient constructor from
-// calling initialize() with navigatorLock, which fails on Render deployments with
-// "this.lock is not a function" / "no-lock" error.
-// We patch the lock BEFORE calling initialize() manually.
+// CRITICAL FIX: Override navigator.locks to prevent GoTrueClient from using the
+// broken navigatorLock implementation which causes "this.lock is not a function"
+// errors and indefinite hangs on some environments (Render, etc).
+// navigator.locks is a read-only getter, so we must use Object.defineProperty.
+try {
+    Object.defineProperty(navigator, 'locks', {
+        value: {
+            request: async (_name, _opts, cb) => {
+                const fn = cb || _opts;
+                return await fn({ name: _name, mode: 'exclusive' });
+            },
+        },
+        writable: true,
+        configurable: true,
+    });
+} catch (e) {
+    console.warn('Could not override navigator.locks:', e);
+}
+
+// Create client with normal initialization — navigator.locks is now safe
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
     auth: {
         persistSession: true,
         detectSessionInUrl: true,
         flowType: 'pkce',
-        skipAutoInitialize: true,
     },
-});
-
-// Safe lock function that bypasses navigator.locks entirely
-const safeLock = async (name, acquireTimeout, fn) => {
-    return await fn();
-};
-
-// Patch the lock function on the auth client BEFORE initialization
-supabase.auth.lock = safeLock;
-
-// Now manually initialize auth — this uses our safe lock function
-supabase.auth.initialize().catch((err) => {
-    console.error('Supabase auth init error:', err);
 });
 
 // ---- AUTH ----
@@ -203,10 +205,14 @@ async function compressImage(file, maxDimension = 800, quality = 0.7) {
 // ---- POSTS ----
 export async function getPosts() {
     try {
-        const { data, error } = await supabase
-            .from('posts')
-            .select('*')
-            .order('timestamp', { ascending: false });
+        const fetchWithTimeout = Promise.race([
+            supabase
+                .from('posts')
+                .select('*')
+                .order('timestamp', { ascending: false }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Fetching posts timed out')), 10000)),
+        ]);
+        const { data, error } = await fetchWithTimeout;
         if (error) { console.error('Error fetching posts:', error); return []; }
         return data || [];
     } catch (err) {
@@ -250,11 +256,15 @@ export async function updatePostReactions(postId, reactions) {
 // ---- COMMENTS ----
 export async function getComments(postId) {
     try {
-        const { data, error } = await supabase
-            .from('comments')
-            .select('id, post_id, user_id, username, content, created_at, profiles(avatar_url, username)')
-            .eq('post_id', postId)
-            .order('created_at', { ascending: true });
+        const fetchWithTimeout = Promise.race([
+            supabase
+                .from('comments')
+                .select('id, post_id, user_id, username, content, created_at, profiles(avatar_url, username)')
+                .eq('post_id', postId)
+                .order('created_at', { ascending: true }),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Fetching comments timed out')), 10000)),
+        ]);
+        const { data, error } = await fetchWithTimeout;
         if (error) return [];
         return data || [];
     } catch {
