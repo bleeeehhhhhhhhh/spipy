@@ -1,16 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
 
 export default function ProfileModal({ isOpen, onClose }) {
     const { profile, updateUserProfile, uploadUserAvatar } = useAuth();
     const showToast = useToast();
-    const [displayName, setDisplayName] = useState(profile?.display_name || '');
-    const [bio, setBio] = useState(profile?.bio || '');
-    const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || '');
+    const [displayName, setDisplayName] = useState('');
+    const [bio, setBio] = useState('');
+    const [avatarUrl, setAvatarUrl] = useState('');
     const [avatarFile, setAvatarFile] = useState(null);
-    const [previewSrc, setPreviewSrc] = useState(profile?.avatar_url || '');
+    const [previewSrc, setPreviewSrc] = useState('');
     const [loading, setLoading] = useState(false);
+
+    // Sync form fields with current profile data every time the modal opens
+    useEffect(() => {
+        if (isOpen && profile) {
+            setDisplayName(profile.display_name || '');
+            setBio(profile.bio || '');
+            setAvatarUrl(profile.avatar_url || '');
+            setPreviewSrc(profile.avatar_url || '');
+            setAvatarFile(null);
+        }
+    }, [isOpen, profile]);
 
     if (!isOpen) return null;
 
