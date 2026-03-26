@@ -287,7 +287,7 @@ export async function getComments(postId) {
         const fetchWithTimeout = Promise.race([
             supabase
                 .from('comments')
-                .select('id, post_id, user_id, username, content, created_at, profiles(avatar_url, username)')
+                .select('id, post_id, user_id, username, content, created_at')
                 .eq('post_id', postId)
                 .order('created_at', { ascending: true }),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Fetching comments timed out')), 10000)),

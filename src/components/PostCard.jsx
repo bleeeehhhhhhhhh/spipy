@@ -244,11 +244,9 @@ export default function PostCard({ post, index = 0, onRefresh }) {
                                 <div key={c.id} className="comment-item">
                                     <div className="comment-header">
                                         <div className="comment-author-info">
-                                            <span className="comment-author-avatar">
-                                                {c.profiles?.avatar_url ? <img src={c.profiles.avatar_url} alt="avatar" className="comment-avatar-img" /> : '🌸'}
-                                            </span>
-                                            <Link to={`/user/${c.username || c.profiles?.username || 'Anonymous'}`} className="comment-author-link">
-                                                <span className="comment-author">@{c.username || c.profiles?.username || 'Anonymous'}</span>
+                                            <span className="comment-author-avatar">🌸</span>
+                                            <Link to={`/user/${c.username || 'Anonymous'}`} className="comment-author-link">
+                                                <span className="comment-author">@{c.username || 'Anonymous'}</span>
                                             </Link>
                                         </div>
                                         <span className="comment-time">{getTimeAgo(c.created_at)}</span>
