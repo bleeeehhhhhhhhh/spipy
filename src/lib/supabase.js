@@ -357,7 +357,9 @@ export function convertSpotifyUrl(url) {
     try {
         let type, id;
         if (url.includes('open.spotify.com')) {
-            const parts = new URL(url).pathname.split('/').filter(Boolean);
+            const parsed = new URL(url);
+            // Filter out intl- prefixes like /intl-it/, /intl-en/ etc
+            const parts = parsed.pathname.split('/').filter(p => p && !p.startsWith('intl-'));
             const validTypes = ['track', 'album', 'playlist', 'episode', 'show'];
             for (let i = 0; i < parts.length; i++) {
                 if (validTypes.includes(parts[i]) && parts[i + 1]) {
@@ -370,7 +372,11 @@ export function convertSpotifyUrl(url) {
             const parts = url.split(':');
             if (parts.length >= 3) { type = parts[1]; id = parts[2]; }
         }
-        return type && id ? `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0` : null;
+        // Validate that id looks like a Spotify ID (alphanumeric, 22 chars typically)
+        if (type && id && id.length >= 10) {
+            return `https://open.spotify.com/embed/${type}/${id}?utm_source=generator&theme=0`;
+        }
+        return null;
     } catch {
         return null;
     }
