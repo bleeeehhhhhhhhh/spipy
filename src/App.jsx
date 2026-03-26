@@ -16,6 +16,7 @@ import FeedPage from './pages/FeedPage';
 import ProfilePage from './pages/ProfilePage';
 import ExplorePage from './pages/ExplorePage';
 import BookmarksPage from './pages/BookmarksPage';
+import UserProfilePage from './pages/UserProfilePage';
 
 export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -42,6 +43,7 @@ export default function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/bookmarks" element={<BookmarksPage />} />
+            <Route path="/user/:username" element={<UserProfilePage />} />
           </Routes>
 
           <Footer />

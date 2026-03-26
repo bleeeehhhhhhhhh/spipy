@@ -115,6 +115,34 @@ export async function updateProfile(userId, updates) {
     return data;
 }
 
+export async function getProfileByUsername(username) {
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('username', username)
+            .single();
+        if (error) return null;
+        return data;
+    } catch {
+        return null;
+    }
+}
+
+export async function getPostsByUserId(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('posts')
+            .select('*')
+            .eq('user_id', userId)
+            .order('timestamp', { ascending: false });
+        if (error) return [];
+        return data || [];
+    } catch {
+        return [];
+    }
+}
+
 export async function uploadAvatar(userId, file) {
     // Try Supabase Storage first (with timeout)
     try {

@@ -7,68 +7,72 @@
 
 /* ---- CSS Variables ---- */
 :root {
-  --pink: #FF9BB3;
-  --pink-soft: #FFE0EA;
-  --pink-deep: #FF6B8A;
-  --coral: #FF7F7F;
-  --lavender: #DCD0FF;
-  --lavender-deep: #B490F5;
-  --blue-soft: #A8E6F0;
-  --blue: #6DC8E8;
-  --teal: #5EC2B7;
-  --yellow: #FFD166;
-  --yellow-soft: #FFF3D4;
-  --mint: #8EEDC7;
-  --peach: #FFCBA4;
-  --cream: #FFF8F3;
-  --text-dark: #2D1F3D;
-  --text-light: #8A7A9E;
-  --shadow-pink: rgba(255, 107, 138, 0.25);
-  --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.08);
+  --pink: #DC143C;
+  --pink-soft: rgba(220, 20, 60, 0.15);
+  --pink-deep: #FF1744;
+  --coral: #B71C1C;
+  --lavender: #4A0E0E;
+  --lavender-deep: #D50000;
+  --blue-soft: rgba(183, 28, 28, 0.2);
+  --blue: #E53935;
+  --teal: #C62828;
+  --yellow: #FF6F00;
+  --yellow-soft: rgba(255, 111, 0, 0.12);
+  --mint: #FF5252;
+  --peach: #FF8A80;
+  --cream: #0A0A0A;
+  --text-dark: #F5E6E6;
+  --text-light: #9E7777;
+  --shadow-pink: rgba(220, 20, 60, 0.35);
+  --shadow-lg: 0 20px 60px rgba(220, 20, 60, 0.15);
   --radius-sm: 14px;
   --radius-md: 20px;
   --radius-lg: 26px;
   --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  --card-bg: rgba(255, 255, 255, 0.88);
+  --card-bg: rgba(18, 8, 8, 0.92);
   --body-bg: var(--cream);
-  --nav-bg: rgba(255, 255, 255, 0.55);
-  --input-bg: #FFF5F5;
-  --input-border: #FFD6E0;
-  --modal-bg: white;
-  --gradient-primary: linear-gradient(135deg, #FF6B8A, #B490F5, #6DC8E8);
-  --gradient-accent: linear-gradient(135deg, #FF9BB3, #DCD0FF);
-  --gradient-warm: linear-gradient(135deg, #FFD166, #FF7F7F, #FF9BB3);
-  --gradient-cool: linear-gradient(135deg, #6DC8E8, #B490F5, #FF9BB3);
+  --nav-bg: rgba(10, 5, 5, 0.85);
+  --input-bg: #1A0A0A;
+  --input-border: #3D1515;
+  --modal-bg: #140A0A;
+  --gradient-primary: linear-gradient(135deg, #DC143C, #8B0000, #FF1744);
+  --gradient-accent: linear-gradient(135deg, #DC143C, #4A0E0E);
+  --gradient-warm: linear-gradient(135deg, #FF6F00, #B71C1C, #DC143C);
+  --gradient-cool: linear-gradient(135deg, #E53935, #8B0000, #DC143C);
+  --glow-red: 0 0 20px rgba(220, 20, 60, 0.4), 0 0 40px rgba(220, 20, 60, 0.2);
+  --glow-red-sm: 0 0 10px rgba(220, 20, 60, 0.3);
 }
 
 [data-theme="dark"] {
-  --cream: #0F0B1A;
-  --body-bg: #0F0B1A;
-  --text-dark: #F0E4FF;
-  --text-light: #A090C0;
-  --card-bg: rgba(28, 18, 50, 0.9);
-  --nav-bg: rgba(15, 11, 26, 0.8);
-  --input-bg: #1C1232;
-  --input-border: #2E1F50;
-  --modal-bg: #1C1232;
-  --pink: #FF7EA0;
-  --pink-soft: rgba(255, 126, 160, 0.15);
-  --pink-deep: #FF5C85;
-  --coral: #FF6B6B;
-  --lavender: #C8B4FF;
-  --lavender-deep: #A47AFF;
-  --blue-soft: rgba(109, 200, 232, 0.2);
-  --blue: #5BB8E0;
-  --teal: #4DB8A8;
-  --yellow: #FFD166;
-  --yellow-soft: rgba(255, 209, 102, 0.12);
-  --mint: #6EDCA8;
-  --peach: #FFB88C;
-  --shadow-pink: rgba(164, 122, 255, 0.2);
-  --gradient-primary: linear-gradient(135deg, #FF5C85, #A47AFF, #5BB8E0);
-  --gradient-accent: linear-gradient(135deg, #FF7EA0, #C8B4FF);
-  --gradient-warm: linear-gradient(135deg, #FFD166, #FF6B6B, #FF7EA0);
-  --gradient-cool: linear-gradient(135deg, #5BB8E0, #A47AFF, #FF7EA0);
+  --cream: #080404;
+  --body-bg: #080404;
+  --text-dark: #FFD5D5;
+  --text-light: #A06060;
+  --card-bg: rgba(15, 5, 5, 0.95);
+  --nav-bg: rgba(8, 4, 4, 0.9);
+  --input-bg: #150808;
+  --input-border: #3A1010;
+  --modal-bg: #120808;
+  --pink: #FF1744;
+  --pink-soft: rgba(255, 23, 68, 0.15);
+  --pink-deep: #FF4569;
+  --coral: #D32F2F;
+  --lavender: #5B1010;
+  --lavender-deep: #E53935;
+  --blue-soft: rgba(229, 57, 53, 0.2);
+  --blue: #EF5350;
+  --teal: #E53935;
+  --yellow: #FF8F00;
+  --yellow-soft: rgba(255, 143, 0, 0.12);
+  --mint: #FF6E6E;
+  --peach: #FF8A80;
+  --shadow-pink: rgba(255, 23, 68, 0.25);
+  --gradient-primary: linear-gradient(135deg, #FF1744, #B71C1C, #FF4569);
+  --gradient-accent: linear-gradient(135deg, #FF1744, #5B1010);
+  --gradient-warm: linear-gradient(135deg, #FF8F00, #D32F2F, #FF1744);
+  --gradient-cool: linear-gradient(135deg, #EF5350, #B71C1C, #FF1744);
+  --glow-red: 0 0 25px rgba(255, 23, 68, 0.5), 0 0 50px rgba(255, 23, 68, 0.25);
+  --glow-red-sm: 0 0 12px rgba(255, 23, 68, 0.35);
 }
 
 /* ---- Reset ---- */
@@ -104,14 +108,14 @@ h6 {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--lavender);
+  background: #0D0505;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--gradient-primary);
   border-radius: 10px;
-  border: 2px solid var(--lavender);
+  border: 2px solid #1A0808;
 }
 
 /* ======== FLOATING CHARACTERS ======== */
@@ -269,7 +273,7 @@ h6 {
   background: var(--nav-bg);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(255, 214, 224, 0.3);
+  border-bottom: 1px solid rgba(220, 20, 60, 0.2);
   transition: var(--transition);
 }
 
@@ -489,8 +493,8 @@ h6 {
 }
 
 .nav-dropdown-item.logout:hover {
-  background: #FFF0F0;
-  color: #E74C3C;
+  background: rgba(183, 28, 28, 0.2);
+  color: #FF1744;
 }
 
 .nav-dropdown-divider {
@@ -1062,7 +1066,7 @@ h6 {
   position: absolute;
   width: 200px;
   height: 200px;
-  background: radial-gradient(circle, rgba(255, 182, 193, 0.3), transparent 70%);
+  background: radial-gradient(circle, rgba(220, 20, 60, 0.3), transparent 70%);
   top: calc(var(--glow-y, 50%) - 100px);
   left: calc(var(--glow-x, 50%) - 100px);
   opacity: 0;
@@ -1378,15 +1382,17 @@ h6 {
   background: var(--card-bg);
   backdrop-filter: blur(10px);
   border-radius: var(--radius-lg);
-  border: 1px solid var(--pink-soft);
+  border: 1px solid rgba(220, 20, 60, 0.15);
   overflow: hidden;
   animation: postCardIn 0.5s ease both;
   transition: var(--transition);
+  box-shadow: var(--glow-red-sm);
 }
 
 .post-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 12px 40px var(--shadow-pink);
+  box-shadow: var(--glow-red);
+  border-color: rgba(220, 20, 60, 0.3);
 }
 
 @keyframes postCardIn {
@@ -1441,17 +1447,17 @@ h6 {
 
 .post-type-badge.note {
   background: var(--yellow-soft);
-  color: #8B6914;
+  color: #FF8F00;
 }
 
 .post-type-badge.song {
-  background: rgba(137, 207, 240, 0.3);
-  color: #2980B9;
+  background: rgba(220, 20, 60, 0.15);
+  color: #FF5252;
 }
 
 .post-type-badge.image {
-  background: rgba(181, 234, 215, 0.3);
-  color: #27AE60;
+  background: rgba(183, 28, 28, 0.15);
+  color: #FF8A80;
 }
 
 .post-delete-btn {
@@ -1588,7 +1594,60 @@ h6 {
   }
 }
 
-/* ======== COMMENTS ======== */
+/* ======== USERNAME LINKS ======== */
+.post-author-name-link,
+.comment-author-link {
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.post-author-name-link:hover .post-author-name,
+.comment-author-link:hover .comment-author {
+  text-shadow: 0 0 12px rgba(220, 20, 60, 0.6);
+  color: var(--pink-deep);
+}
+
+.post-author-name-link:hover,
+.comment-author-link:hover {
+  filter: brightness(1.3);
+}
+
+/* ======== GLOW EFFECTS ======== */
+.profile-card {
+  box-shadow: var(--glow-red-sm);
+  border-color: rgba(220, 20, 60, 0.15);
+}
+
+.profile-card:hover {
+  box-shadow: var(--glow-red);
+  border-color: rgba(220, 20, 60, 0.3);
+}
+
+.btn-primary,
+.btn-login,
+.btn-post,
+.btn-auth-submit {
+  box-shadow: 0 4px 20px var(--shadow-pink), var(--glow-red-sm);
+}
+
+.btn-primary:hover,
+.btn-login:hover,
+.btn-post:hover,
+.btn-auth-submit:hover {
+  box-shadow: 0 8px 30px var(--shadow-pink), var(--glow-red);
+}
+
+.create-area {
+  box-shadow: var(--glow-red-sm);
+  border-color: rgba(220, 20, 60, 0.15);
+}
+
+.modal-card {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), var(--glow-red);
+  border: 1px solid rgba(220, 20, 60, 0.2);
+}
+
+/* ======== COMMENTS ========= */
 .post-comments {
   padding: 0 20px 16px;
   border-top: 1px solid var(--pink-soft);

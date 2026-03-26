@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from './Toast';
 import { getComments, addComment, deleteComment, updatePostReactions, deletePost as deletePostApi, addBookmark, removeBookmark, getPosts, generateId } from '../lib/supabase';
@@ -31,7 +32,7 @@ function spawnReactionParticles(element, emoji) {
     particle.style.top = (cy - 10) + 'px';
     document.body.appendChild(particle);
     setTimeout(() => particle.remove(), 850);
-    const colors = ['#FFB6C1', '#C4A8E0', '#89CFF0', '#FFC947', '#FF85A2', '#B5EAD7'];
+    const colors = ['#DC143C', '#FF1744', '#FF5252', '#B71C1C', '#FF8A80', '#E53935'];
     const count = 6 + Math.floor(Math.random() * 3);
     for (let i = 0; i < count; i++) {
         const spark = document.createElement('div');
@@ -57,6 +58,7 @@ export default function PostCard({ post, index = 0, onRefresh }) {
     const [comments, setComments] = useState([]);
     const [commentText, setCommentText] = useState('');
     const [loadingComments, setLoadingComments] = useState(false);
+    const [submittingComment, setSubmittingComment] = useState(false);
 
     const typeLabels = {
         note: { icon: '📝', label: 'Note', class: 'note' },
@@ -126,8 +128,9 @@ export default function PostCard({ post, index = 0, onRefresh }) {
     };
 
     const handleSubmitComment = async () => {
-        if (!user) return;
+        if (!user || submittingComment) return;
         if (!commentText.trim()) { showToast('✏️ Write a comment first!'); return; }
+        setSubmittingComment(true);
         try {
             await addComment({
                 id: generateId(),
@@ -140,7 +143,10 @@ export default function PostCard({ post, index = 0, onRefresh }) {
             await loadComments();
             showToast('💬 Comment added!');
         } catch (error) {
+            console.error('Comment error:', error);
             showToast('😭 Error: ' + error.message);
+        } finally {
+            setSubmittingComment(false);
         }
     };
 
@@ -188,7 +194,9 @@ export default function PostCard({ post, index = 0, onRefresh }) {
             <div className="post-card-header">
                 <div className="post-author-info">
                     <span className="post-author-avatar">🌸</span>
-                    <span className="post-author-name">@{post.username || 'Anonymous'}</span>
+                    <Link to={`/user/${post.username || 'Anonymous'}`} className="post-author-name-link">
+                        <span className="post-author-name">@{post.username || 'Anonymous'}</span>
+                    </Link>
                 </div>
                 <div className="post-header-right">
                     <span className={`post-type-badge ${typeInfo.class}`}>
@@ -239,7 +247,9 @@ export default function PostCard({ post, index = 0, onRefresh }) {
                                             <span className="comment-author-avatar">
                                                 {c.profiles?.avatar_url ? <img src={c.profiles.avatar_url} alt="avatar" className="comment-avatar-img" /> : '🌸'}
                                             </span>
-                                            <span className="comment-author">@{c.username || c.profiles?.username || 'Anonymous'}</span>
+                                            <Link to={`/user/${c.username || c.profiles?.username || 'Anonymous'}`} className="comment-author-link">
+                                                <span className="comment-author">@{c.username || c.profiles?.username || 'Anonymous'}</span>
+                                            </Link>
                                         </div>
                                         <span className="comment-time">{getTimeAgo(c.created_at)}</span>
                                         {user && user.id === c.user_id && (
@@ -256,7 +266,9 @@ export default function PostCard({ post, index = 0, onRefresh }) {
                             <input className="comment-input" type="text" placeholder="Write a comment..."
                                 value={commentText} onChange={e => setCommentText(e.target.value)}
                                 onKeyDown={e => e.key === 'Enter' && handleSubmitComment()} />
-                            <button className="comment-send-btn" onClick={handleSubmitComment}>↗</button>
+                            <button className="comment-send-btn" onClick={handleSubmitComment} disabled={submittingComment}>
+                                {submittingComment ? '...' : '↗'}
+                            </button>
                         </div>
                     )}
                 </div>
