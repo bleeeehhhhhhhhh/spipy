@@ -36,9 +36,14 @@ export default function UserProfilePage() {
         setStartingChat(true);
         try {
             const convId = await getOrCreateConversation(user.id, profile.id);
-            navigate(`/messages/${convId}`);
+            if (convId) {
+                navigate(`/messages/${convId}`);
+            } else {
+                alert('Could not start conversation. Please make sure the messaging database is set up.');
+            }
         } catch (err) {
             console.error('Failed to start conversation:', err);
+            alert('Failed to start conversation: ' + (err?.message || 'Unknown error. Make sure MESSAGING_SETUP.sql has been run in Supabase.'));
         }
         setStartingChat(false);
     };
