@@ -17,6 +17,7 @@ import ProfilePage from './pages/ProfilePage';
 import ExplorePage from './pages/ExplorePage';
 import BookmarksPage from './pages/BookmarksPage';
 import UserProfilePage from './pages/UserProfilePage';
+import MessagesPage from './pages/MessagesPage';
 
 export default function App() {
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -43,6 +44,8 @@ export default function App() {
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/explore" element={<ExplorePage />} />
             <Route path="/bookmarks" element={<BookmarksPage />} />
+            <Route path="/messages" element={<MessagesPage />} />
+            <Route path="/messages/:conversationId" element={<MessagesPage />} />
             <Route path="/user/:username" element={<UserProfilePage />} />
           </Routes>
 
@@ -53,3 +56,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+

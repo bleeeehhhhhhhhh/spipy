@@ -381,3 +381,228 @@ export function convertSpotifyUrl(url) {
         return null;
     }
 }
+
+// ---- USER SEARCH ----
+export async function searchUsers(query) {
+    try {
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('id, username, display_name, avatar_url')
+            .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
+            .limit(10);
+        if (error) return [];
+        return data || [];
+    } catch {
+        return [];
+    }
+}
+
+// ---- CONVERSATIONS ----
+export async function getConversations(userId) {
+    try {
+        // Get all conversation IDs the user participates in
+        const { data: participations, error: pErr } = await supabase
+            .from('conversation_participants')
+            .select('conversation_id, last_read_at')
+            .eq('user_id', userId);
+        if (pErr || !participations?.length) return [];
+
+        const convIds = participations.map(p => p.conversation_id);
+
+        // Get conversations with their participants
+        const { data: convos, error: cErr } = await supabase
+            .from('conversations')
+            .select('id, created_at, updated_at')
+            .in('id', convIds)
+            .order('updated_at', { ascending: false });
+        if (cErr) return [];
+
+        // Get all participants for these conversations
+        const { data: allParticipants } = await supabase
+            .from('conversation_participants')
+            .select('conversation_id, user_id, last_read_at')
+            .in('conversation_id', convIds);
+
+        // Get last message for each conversation
+        const convoResults = await Promise.all(
+            (convos || []).map(async (conv) => {
+                const { data: lastMsgs } = await supabase
+                    .from('messages')
+                    .select('id, content, sender_id, created_at, is_deleted')
+                    .eq('conversation_id', conv.id)
+                    .order('created_at', { ascending: false })
+                    .limit(1);
+
+                return {
+                    ...conv,
+                    participants: (allParticipants || []).filter(p => p.conversation_id === conv.id),
+                    last_message: lastMsgs?.[0] || null,
+                };
+            })
+        );
+
+        return convoResults;
+    } catch (err) {
+        console.error('Error getting conversations:', err);
+        return [];
+    }
+}
+
+export async function getOrCreateConversation(currentUserId, otherUserId) {
+    try {
+        // Try to find existing DM using the SQL function
+        const { data: existingId, error: findErr } = await supabase
+            .rpc('find_dm_conversation', {
+                user1_id: currentUserId,
+                user2_id: otherUserId,
+            });
+
+        if (!findErr && existingId) return existingId;
+
+        // Create new conversation
+        const { data: conv, error: convErr } = await supabase
+            .from('conversations')
+            .insert({})
+            .select()
+            .single();
+        if (convErr) throw convErr;
+
+        // Add both participants
+        const { error: partErr } = await supabase
+            .from('conversation_participants')
+            .insert([
+                { conversation_id: conv.id, user_id: currentUserId },
+                { conversation_id: conv.id, user_id: otherUserId },
+            ]);
+        if (partErr) throw partErr;
+
+        return conv.id;
+    } catch (err) {
+        console.error('Error creating conversation:', err);
+        throw err;
+    }
+}
+
+export async function getConversationMessages(conversationId) {
+    try {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .eq('conversation_id', conversationId)
+            .order('created_at', { ascending: true });
+        if (error) return [];
+        return data || [];
+    } catch {
+        return [];
+    }
+}
+
+export async function sendMessage(conversationId, senderId, content, mentions = [], imageUrl = null) {
+    const msgData = {
+        conversation_id: conversationId,
+        sender_id: senderId,
+        content: content || '',
+        mentions: mentions,
+    };
+    if (imageUrl) msgData.image_url = imageUrl;
+
+    const { data, error } = await supabase
+        .from('messages')
+        .insert([msgData])
+        .select()
+        .single();
+    if (error) throw error;
+    return data;
+}
+
+export async function deleteMessage(messageId) {
+    const { error } = await supabase
+        .from('messages')
+        .update({ is_deleted: true, content: '' })
+        .eq('id', messageId);
+    if (error) throw error;
+}
+
+export async function markConversationRead(conversationId, userId) {
+    try {
+        await supabase
+            .from('conversation_participants')
+            .update({ last_read_at: new Date().toISOString() })
+            .eq('conversation_id', conversationId)
+            .eq('user_id', userId);
+    } catch { }
+}
+
+// ---- NOTIFICATIONS ----
+export async function getNotifications(userId) {
+    try {
+        const { data, error } = await supabase
+            .from('notifications')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false })
+            .limit(50);
+        if (error) return [];
+        return data || [];
+    } catch {
+        return [];
+    }
+}
+
+export async function markNotificationRead(notifId) {
+    const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notifId);
+    if (error) throw error;
+}
+
+export async function markAllNotificationsRead(userId) {
+    const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('user_id', userId)
+        .eq('is_read', false);
+    if (error) throw error;
+}
+
+export async function getUnreadNotificationCount(userId) {
+    try {
+        const { count, error } = await supabase
+            .from('notifications')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', userId)
+            .eq('is_read', false);
+        if (error) return 0;
+        return count || 0;
+    } catch {
+        return 0;
+    }
+}
+
+// ---- MESSAGING REALTIME ----
+export function subscribeToMessages(conversationId, callback) {
+    const channel = supabase
+        .channel(`messages-${conversationId}`)
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `conversation_id=eq.${conversationId}`,
+        }, callback)
+        .subscribe();
+    return () => supabase.removeChannel(channel);
+}
+
+export function subscribeToNotifications(userId, callback) {
+    const channel = supabase
+        .channel(`notifications-${userId}`)
+        .on('postgres_changes', {
+            event: '*',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${userId}`,
+        }, callback)
+        .subscribe();
+    return () => supabase.removeChannel(channel);
+}

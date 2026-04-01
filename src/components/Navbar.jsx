@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import NotificationBell from './NotificationBell';
+import { getConversations, subscribeToNotifications } from '../lib/supabase';
 
 function LogoSparkle({ x, y }) {
     return (
@@ -29,6 +31,7 @@ export default function Navbar({ onOpenAuth, onOpenProfile }) {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [sparkles, setSparkles] = useState([]);
     const [logoHovered, setLogoHovered] = useState(false);
+    const [unreadMsgCount, setUnreadMsgCount] = useState(0);
     const logoRef = useRef(null);
     const location = useLocation();
 
@@ -37,6 +40,48 @@ export default function Navbar({ onOpenAuth, onOpenProfile }) {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    // Track unread messages
+    useEffect(() => {
+        if (!user) { setUnreadMsgCount(0); return; }
+
+        const loadUnread = async () => {
+            try {
+                const convos = await getConversations(user.id);
+                let count = 0;
+                convos.forEach(c => {
+                    const myPart = c.participants?.find(p => p.user_id === user.id);
+                    if (c.last_message && myPart
+                        && new Date(c.last_message.created_at) > new Date(myPart.last_read_at)
+                        && c.last_message.sender_id !== user.id) {
+                        count++;
+                    }
+                });
+                setUnreadMsgCount(count);
+            } catch { }
+        };
+
+        loadUnread();
+
+        // Refresh on notification (new message triggers a notification)
+        const unsub = subscribeToNotifications(user.id, (payload) => {
+            if (payload.eventType === 'INSERT' && payload.new?.type === 'message') {
+                // Only bump count if we're not on the messages page
+                if (!window.location.pathname.startsWith('/messages')) {
+                    setUnreadMsgCount(prev => prev + 1);
+                }
+            }
+        });
+
+        return unsub;
+    }, [user]);
+
+    // Reset unread count when visiting messages page
+    useEffect(() => {
+        if (location.pathname.startsWith('/messages') && user) {
+            setUnreadMsgCount(0);
+        }
+    }, [location.pathname, user]);
 
     const handleLogoEnter = useCallback((e) => {
         setLogoHovered(true);
@@ -78,7 +123,7 @@ export default function Navbar({ onOpenAuth, onOpenProfile }) {
         localStorage.setItem('spipy_theme', next);
     };
 
-    const isActive = (path) => location.pathname === path;
+    const isActive = (path) => location.pathname === path || (path === '/messages' && location.pathname.startsWith('/messages'));
 
     return (
         <nav className={`navbar ${scrolled ? 'scrolled' : ''}`}>
@@ -117,6 +162,16 @@ export default function Navbar({ onOpenAuth, onOpenProfile }) {
                     <li><Link to="/feed" className={isActive('/feed') ? 'active' : ''} onClick={() => setMobileOpen(false)}>Feed</Link></li>
                     <li><Link to="/explore" className={isActive('/explore') ? 'active' : ''} onClick={() => setMobileOpen(false)}>Explore</Link></li>
                     {user && <li><Link to="/bookmarks" className={isActive('/bookmarks') ? 'active' : ''} onClick={() => setMobileOpen(false)}>Bookmarks</Link></li>}
+                    {user && (
+                        <li>
+                            <Link to="/messages" className={`nav-messages-link ${isActive('/messages') ? 'active' : ''}`} onClick={() => setMobileOpen(false)}>
+                                💬 Messages
+                                {unreadMsgCount > 0 && (
+                                    <span className="nav-msg-badge">{unreadMsgCount > 9 ? '9+' : unreadMsgCount}</span>
+                                )}
+                            </Link>
+                        </li>
+                    )}
                 </ul>
 
                 <div className="nav-auth">
@@ -124,6 +179,8 @@ export default function Navbar({ onOpenAuth, onOpenProfile }) {
                         <button className="btn-login" onClick={onOpenAuth}>Login ✦</button>
                     ) : (
                         <div className="nav-user">
+                            <NotificationBell />
+
                             <div className="nav-user-menu">
                                 <button className="nav-user-trigger" onClick={() => setMenuOpen(!menuOpen)}>
                                     <div className="nav-avatar">
@@ -142,6 +199,9 @@ export default function Navbar({ onOpenAuth, onOpenProfile }) {
                                         <Link to="/profile" className="nav-dropdown-item" onClick={() => { setMenuOpen(false); setMobileOpen(false); }}>
                                             <span>👤</span> My Profile
                                         </Link>
+                                        <Link to="/messages" className="nav-dropdown-item" onClick={() => { setMenuOpen(false); setMobileOpen(false); }}>
+                                            <span>💬</span> Messages
+                                        </Link>
                                         <div className="nav-dropdown-divider"></div>
                                         <button className="nav-dropdown-item logout" onClick={handleSignOut}>
                                             <span>👋</span> Logout
@@ -156,3 +216,4 @@ export default function Navbar({ onOpenAuth, onOpenProfile }) {
         </nav>
     );
 }
+

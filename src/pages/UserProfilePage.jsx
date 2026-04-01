@@ -1,17 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import PostCard from '../components/PostCard';
-import { getProfileByUsername, getPostsByUserId } from '../lib/supabase';
+import { getProfileByUsername, getPostsByUserId, getOrCreateConversation } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function UserProfilePage() {
     const { username } = useParams();
+    const navigate = useNavigate();
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [posts, setPosts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
+    const [startingChat, setStartingChat] = useState(false);
 
     const loadProfile = useCallback(async () => {
         setLoading(true);
@@ -28,6 +30,18 @@ export default function UserProfilePage() {
     }, [username]);
 
     useEffect(() => { loadProfile(); }, [loadProfile]);
+
+    const handleSendMessage = async () => {
+        if (!user || !profile || startingChat) return;
+        setStartingChat(true);
+        try {
+            const convId = await getOrCreateConversation(user.id, profile.id);
+            navigate(`/messages/${convId}`);
+        } catch (err) {
+            console.error('Failed to start conversation:', err);
+        }
+        setStartingChat(false);
+    };
 
     if (loading) {
         return (
@@ -83,11 +97,21 @@ export default function UserProfilePage() {
                                 <span className="profile-stat-label">Posts</span>
                             </div>
                         </div>
-                        {isOwnProfile && (
-                            <Link to="/profile" className="btn-primary" style={{ marginTop: '16px', display: 'inline-block', fontSize: '14px', padding: '10px 24px' }}>
-                                Go to My Profile
-                            </Link>
-                        )}
+                        <div className="profile-actions-row">
+                            {isOwnProfile ? (
+                                <Link to="/profile" className="btn-primary" style={{ marginTop: '16px', display: 'inline-block', fontSize: '14px', padding: '10px 24px' }}>
+                                    Go to My Profile
+                                </Link>
+                            ) : user && (
+                                <button
+                                    className="btn-send-message"
+                                    onClick={handleSendMessage}
+                                    disabled={startingChat}
+                                >
+                                    {startingChat ? '⏳ Opening...' : '💬 Send Message'}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </motion.section>
@@ -112,3 +136,4 @@ export default function UserProfilePage() {
         </main>
     );
 }
+
