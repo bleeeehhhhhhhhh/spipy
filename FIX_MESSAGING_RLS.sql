@@ -1,5 +1,5 @@
 -- ============================================
--- QUICK FIX: Run this to fix the infinite recursion error
+-- COMPLETE FIX: Run this to fix ALL messaging issues
 -- Paste this ENTIRE script in Supabase SQL Editor and click Run
 -- ============================================
 
@@ -18,7 +18,7 @@ DROP POLICY IF EXISTS "Anyone can create notifications" ON notifications;
 DROP POLICY IF EXISTS "Users can update own notifications" ON notifications;
 DROP POLICY IF EXISTS "Users can delete own notifications" ON notifications;
 
--- Step 2: Create SECURITY DEFINER functions (these bypass RLS to prevent recursion)
+-- Step 2: Create SECURITY DEFINER functions (bypass RLS to prevent recursion)
 CREATE OR REPLACE FUNCTION is_conversation_member(p_conversation_id UUID, p_user_id UUID)
 RETURNS BOOLEAN AS $$
 BEGIN
@@ -39,9 +39,44 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER STABLE;
 
--- Step 3: Create FIXED policies (no more recursion!)
+-- Step 3: Create a function that creates conversation + adds participants atomically
+-- This bypasses RLS so there's no chicken-and-egg problem
+CREATE OR REPLACE FUNCTION create_dm_conversation(p_user1_id UUID, p_user2_id UUID)
+RETURNS UUID AS $$
+DECLARE
+  existing_conv_id UUID;
+  new_conv_id UUID;
+BEGIN
+  -- First check if conversation already exists
+  SELECT cp1.conversation_id INTO existing_conv_id
+  FROM conversation_participants cp1
+  JOIN conversation_participants cp2 ON cp1.conversation_id = cp2.conversation_id
+  WHERE cp1.user_id = p_user1_id
+    AND cp2.user_id = p_user2_id
+    AND (
+      SELECT COUNT(*) FROM conversation_participants cp3
+      WHERE cp3.conversation_id = cp1.conversation_id
+    ) = 2;
 
--- Conversations policies
+  IF existing_conv_id IS NOT NULL THEN
+    RETURN existing_conv_id;
+  END IF;
+
+  -- Create new conversation
+  INSERT INTO conversations DEFAULT VALUES
+  RETURNING id INTO new_conv_id;
+
+  -- Add both participants
+  INSERT INTO conversation_participants (conversation_id, user_id)
+  VALUES (new_conv_id, p_user1_id), (new_conv_id, p_user2_id);
+
+  RETURN new_conv_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Step 4: Create FIXED RLS policies
+
+-- Conversations
 CREATE POLICY "Users can view own conversations"
   ON conversations FOR SELECT
   USING (id IN (SELECT get_user_conversation_ids(auth.uid())));
@@ -54,7 +89,7 @@ CREATE POLICY "Participants can update conversations"
   ON conversations FOR UPDATE
   USING (is_conversation_member(id, auth.uid()));
 
--- Conversation Participants policies (FIXED - uses security definer function)
+-- Conversation Participants (uses security definer - no recursion)
 CREATE POLICY "Users can view participants of own conversations"
   ON conversation_participants FOR SELECT
   USING (conversation_id IN (SELECT get_user_conversation_ids(auth.uid())));
@@ -67,7 +102,7 @@ CREATE POLICY "Users can update own participation"
   ON conversation_participants FOR UPDATE
   USING (user_id = auth.uid());
 
--- Messages policies
+-- Messages
 CREATE POLICY "Users can read messages in own conversations"
   ON messages FOR SELECT
   USING (conversation_id IN (SELECT get_user_conversation_ids(auth.uid())));
@@ -83,7 +118,7 @@ CREATE POLICY "Users can update own messages"
   ON messages FOR UPDATE
   USING (sender_id = auth.uid());
 
--- Notifications policies
+-- Notifications
 CREATE POLICY "Users can view own notifications"
   ON notifications FOR SELECT
   USING (user_id = auth.uid());
@@ -100,7 +135,7 @@ CREATE POLICY "Users can delete own notifications"
   ON notifications FOR DELETE
   USING (user_id = auth.uid());
 
--- Step 4: Re-create helper functions
+-- Step 5: Helper functions
 CREATE OR REPLACE FUNCTION find_dm_conversation(user1_id UUID, user2_id UUID)
 RETURNS UUID AS $$
 DECLARE
@@ -207,7 +242,7 @@ CREATE TRIGGER on_new_message
   AFTER INSERT ON messages
   FOR EACH ROW EXECUTE FUNCTION handle_new_message();
 
--- Step 5: Enable Realtime
+-- Step 6: Enable Realtime
 DO $$ BEGIN
   ALTER PUBLICATION supabase_realtime ADD TABLE messages;
 EXCEPTION WHEN OTHERS THEN NULL;
@@ -223,4 +258,4 @@ DO $$ BEGIN
 EXCEPTION WHEN OTHERS THEN NULL;
 END $$;
 
--- DONE! The infinite recursion error is now fixed.
+-- ALL DONE! Messaging will now work.

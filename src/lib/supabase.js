@@ -450,33 +450,16 @@ export async function getConversations(userId) {
 
 export async function getOrCreateConversation(currentUserId, otherUserId) {
     try {
-        // Try to find existing DM using the SQL function
-        const { data: existingId, error: findErr } = await supabase
-            .rpc('find_dm_conversation', {
-                user1_id: currentUserId,
-                user2_id: otherUserId,
+        // Use the SECURITY DEFINER function that handles everything atomically
+        // This bypasses RLS so there's no chicken-and-egg problem
+        const { data, error } = await supabase
+            .rpc('create_dm_conversation', {
+                p_user1_id: currentUserId,
+                p_user2_id: otherUserId,
             });
 
-        if (!findErr && existingId) return existingId;
-
-        // Create new conversation
-        const { data: conv, error: convErr } = await supabase
-            .from('conversations')
-            .insert({})
-            .select()
-            .single();
-        if (convErr) throw convErr;
-
-        // Add both participants
-        const { error: partErr } = await supabase
-            .from('conversation_participants')
-            .insert([
-                { conversation_id: conv.id, user_id: currentUserId },
-                { conversation_id: conv.id, user_id: otherUserId },
-            ]);
-        if (partErr) throw partErr;
-
-        return conv.id;
+        if (error) throw error;
+        return data;
     } catch (err) {
         console.error('Error creating conversation:', err);
         throw err;
