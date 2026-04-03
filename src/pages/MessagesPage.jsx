@@ -251,6 +251,10 @@ export default function MessagesPage() {
     const startConversation = async (otherUserId) => {
         try {
             const convId = await getOrCreateConversation(user.id, otherUserId);
+            if (!convId) {
+                alert('Could not start conversation. Make sure the messaging database is set up.');
+                return;
+            }
             setActiveConvId(convId);
             setShowNewChat(false);
             setShowChatPanel(true);
@@ -260,6 +264,7 @@ export default function MessagesPage() {
             loadConversations();
         } catch (err) {
             console.error('Failed to create conversation:', err);
+            alert('Failed to start conversation: ' + (err?.message || 'Unknown error'));
         }
     };
 
